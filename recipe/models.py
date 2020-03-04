@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from mptt.fields import TreeForeignKey
@@ -53,14 +52,17 @@ class Category(MPTTModel):
     parent = TreeForeignKey('self', blank=True, null=True, related_name='children', on_delete=models.SET_NULL)
 
     def thing_not_in_branch(self, field, thing_id):
-        filter_dict = {'id=': thing_id}
+        filter_dict = {'id': thing_id}
         for category in self.get_family():
-            if category.__getattribute__(field).filter(filter_dict).exists():
+            if category.__getattribute__(field).filter(**filter_dict).exists():
                 return False
         return True
 
     class Meta:
         abstract = True
+
+    def __str__(self):
+        return self.name
 
 
 class IngredientCategory(Category):
@@ -75,6 +77,7 @@ class RecipeCategory(Category):
     recipes = models.ManyToManyField(
         to='recipe.Recipe',
         related_name='categories',
+        through='recipe.RecipeCategoryConnection'
     )
 
 
@@ -85,18 +88,14 @@ class IngredientCategoryConnection(models.Model):
     def save(self, *args, **kwargs):
         assert self.category.thing_not_in_branch("ingredients", self.ingredient.id), \
             "ingredient already in category family"
-        super(self, IngredientCategoryConnection).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 
 class RecipeCategoryConnection(models.Model):
-    recipe = models.ForeignKey(to=Ingredient, on_delete=models.CASCADE)
-    category = models.ForeignKey(to=IngredientCategory, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(to=Recipe, on_delete=models.CASCADE)
+    category = models.ForeignKey(to=RecipeCategory, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
-        assert self.category.thing_not_in_branch("ingredients", self.recipe.id), \
+        assert self.category.thing_not_in_branch("recipes", self.recipe.id), \
             "ingredient already in category family"
-        super(self, RecipeCategoryConnection).save(*args, **kwargs)
-
-
-
-
+        super().save(*args, **kwargs)
