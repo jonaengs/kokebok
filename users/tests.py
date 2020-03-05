@@ -1,4 +1,6 @@
 import uuid
+
+from django.db import IntegrityError
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
@@ -13,16 +15,16 @@ class UserManagerTest(TestCase):
         self.assertTrue(user.is_active)
         self.assertFalse(user.is_superuser)
         self.assertFalse(user.is_staff)
-        self.assertEqual(len(user.id), len(uuid.uuid4()))
+        self.assertEqual(len(str(user.id)), len(str(uuid.uuid4())))
         with self.assertRaises(AttributeError):  # no username field should be defined
             self.assertIsNone(user.username)
         with self.assertRaises(TypeError):
             User.objects.create_user()
         with self.assertRaises(TypeError):  # password missing
-            User.objects.create_user(email="asd")
+            User.objects.create_user(email="a" + self.email)
         with self.assertRaises(ValueError):
             User.objects.create_user(email='', password="123")
-        with self.assertRaises(ValueError):  # email must be unique
+        with self.assertRaises(IntegrityError):  # email must be unique
             User.objects.create_user(email=self.email, password="123")
 
     def test_create_superuser(self):

@@ -14,7 +14,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         default=uuid.uuid4,
         editable=False,
     )
-    email = models.EmailField(_('email address'), unique=True)
+    email = models.EmailField(_('email address'), unique=True)  # Remember to validate forms in addition
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
