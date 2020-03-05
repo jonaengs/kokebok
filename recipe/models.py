@@ -10,7 +10,7 @@ from mptt.models import MPTTModel
 class Recipe(models.Model):
     date_created = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=128)
-    default_servings = models.IntegerField(blank=True)
+    default_servings = models.IntegerField(blank=True, null=True)
 
     # community interactions
     author = models.ForeignKey(
@@ -64,7 +64,7 @@ class Favorite(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=40)
+    name = models.CharField(max_length=40, unique=True)  # unique??
     ubiquitous = models.BooleanField(default=False)
     recipes = models.ManyToManyField(
         to='recipe.Recipe',
@@ -95,7 +95,10 @@ class RecipeIngredient(models.Model):
         on_delete=models.CASCADE,
         related_name='recipe_connections'
     )
-    amount_per_serving = models.IntegerField(blank=True)
+    amount_per_serving = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+    )
     measurement = models.CharField(
         max_length=5,
         choices=Measurements.choices,
