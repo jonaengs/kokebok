@@ -12,8 +12,8 @@ class Recipe(models.Model):
     name = models.CharField(max_length=128)
     default_servings = models.PositiveIntegerField(blank=True, null=True)
     ingredient_objects = models.ManyToManyField(
-        to='recipe.Ingredient',
-        through='recipe.RecipeIngredient',
+        to='recipes.Ingredient',
+        through='recipes.RecipeIngredient',
         related_name='recipes',
     )
 
@@ -36,10 +36,10 @@ class Recipe(models.Model):
         recipe_ingredient.save()
 
 
-# variation on a recipe. Allow users to "subclass" other recipes
+# variation on a recipes. Allow users to "subclass" other recipes
 class Variation(Recipe):  # variations are also recipes. This allows for variations on variations etc.
     original = models.ForeignKey(
-        to='recipe.Recipe',
+        to='recipes.Recipe',
         on_delete=models.DO_NOTHING,
         null=True,
         blank=True,
@@ -49,7 +49,7 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
     # TODO: it may be inefficient to copy every ingredient connection for every variation.
     #  Consider saving differences between original and variation instead. (<- may require tree-structured models)
     def save(self, *args, **kwargs):
-        if not self.pk:  # on creation, copy over ingredient connections from original recipe
+        if not self.pk:  # on creation, copy over ingredient connections from original recipes
             super().save(*args, **kwargs)
             for ingredient in self.original.recipe_ingredients.all():
                 ingredient.recipe = self
@@ -67,7 +67,7 @@ class Favorite(models.Model):
         related_name='favorites',
     )
     recipe = models.ForeignKey(
-        to='recipe.Recipe',
+        to='recipes.Recipe',
         on_delete=models.CASCADE,
         related_name='favorites'
     )
@@ -91,12 +91,12 @@ class RecipeIngredient(models.Model):
         __empty__ = _('Unknown')
 
     recipe = models.ForeignKey(
-        to='recipe.Recipe',
+        to='recipes.Recipe',
         on_delete=models.CASCADE,
         related_name='recipe_ingredients'
     )
     ingredient = models.ForeignKey(
-        to='recipe.Ingredient',
+        to='recipes.Ingredient',
         on_delete=models.CASCADE,
         related_name='recipe_usages'
     )
@@ -117,7 +117,7 @@ class RecipeIngredient(models.Model):
 
 # TODO: Consider moving everything category-related into its own app
 # TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category
-#  with choices "ingredient" or "recipe"
+#  with choices "ingredient" or "recipes"
 class Category(MPTTModel):
     name = models.CharField(max_length=40)
     parent = TreeForeignKey('self', blank=True, null=True, related_name='children', on_delete=models.SET_NULL)
@@ -138,17 +138,17 @@ class Category(MPTTModel):
 
 class IngredientCategory(Category):
     ingredients = models.ManyToManyField(
-        to='recipe.Ingredient',
+        to='recipes.Ingredient',
         related_name='categories',
-        through='recipe.IngredientCategoryConnection',
+        through='recipes.IngredientCategoryConnection',
     )
 
 
 class RecipeCategory(Category):
     recipes = models.ManyToManyField(
-        to='recipe.Recipe',
+        to='recipes.Recipe',
         related_name='categories',
-        through='recipe.RecipeCategoryConnection'
+        through='recipes.RecipeCategoryConnection'
     )
 
 
@@ -179,8 +179,8 @@ class BaseCategoryConnection(models.Model):
 
 
 class IngredientCategoryConnection(BaseCategoryConnection):
-    ingredient = models.ForeignKey(to='recipe.Ingredient', on_delete=models.CASCADE, related_name='category_connections')
-    category = models.ForeignKey(to='recipe.IngredientCategory', on_delete=models.CASCADE, related_name='connections')
+    ingredient = models.ForeignKey(to='recipes.Ingredient', on_delete=models.CASCADE, related_name='category_connections')
+    category = models.ForeignKey(to='recipes.IngredientCategory', on_delete=models.CASCADE, related_name='connections')
 
     @property
     def attr(self):
@@ -192,8 +192,8 @@ class IngredientCategoryConnection(BaseCategoryConnection):
 
 
 class RecipeCategoryConnection(BaseCategoryConnection):
-    recipe = models.ForeignKey(to='recipe.Recipe', on_delete=models.CASCADE, related_name='category_connections')
-    category = models.ForeignKey(to='recipe.RecipeCategory', on_delete=models.CASCADE, related_name='connections')
+    recipe = models.ForeignKey(to='recipes.Recipe', on_delete=models.CASCADE, related_name='category_connections')
+    category = models.ForeignKey(to='recipes.RecipeCategory', on_delete=models.CASCADE, related_name='connections')
 
     @property
     def attr(self):

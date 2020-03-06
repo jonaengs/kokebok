@@ -44,7 +44,7 @@ INSTALLED_APPS = [
 
     # mine
     'users.apps.UsersConfig',
-    'recipe.apps.RecipeConfig',
+    'recipes.apps.RecipesConfig',
     'pages.apps.PagesConfig',
 ]
 

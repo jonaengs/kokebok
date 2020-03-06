@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 
-from recipe.models import Recipe, Ingredient, RecipeIngredient, Variation, Category, IngredientCategory, RecipeCategory, \
+from recipes.models import Recipe, Ingredient, RecipeIngredient, Variation, Category, IngredientCategory, RecipeCategory, \
     BaseCategoryConnection, IngredientCategoryConnection, RecipeCategoryConnection
 
 User = get_user_model()
@@ -31,15 +31,20 @@ class RecipeTest(TestCase):
     def test_recipe_add_ingredient(self):
         ingredient = Ingredient.objects.create(name='ingredient')
         # pycharm will complain about this, but it works fine
-        self.recipe.ingredient_objects.add(ingredient, through_defaults={'recipe': self.recipe, 'ingredient': ingredient})
+        self.recipe.ingredient_objects.add(ingredient)
         self.assertIsNotNone(RecipeIngredient.objects.first())
         self.assertEquals(RecipeIngredient.objects.all().count(), 1)
 
     def test_recipe_create_ingredient(self):
         ingredient = Ingredient.objects.create(name='ingredient')
-        self.recipe.ingredient_objects.create(through_defaults={'recipe': self.recipe, 'ingredient': ingredient})
+        self.assertEqual(RecipeIngredient.objects.all().count(), 0)
+        self.recipe.ingredient_objects.create()
         self.assertIsNotNone(RecipeIngredient.objects.first())
         self.assertEquals(RecipeIngredient.objects.all().count(), 1)
+        recipe_ingredient = RecipeIngredient.objects.first()
+        recipe_ingredient.ingredient = ingredient
+        recipe_ingredient.save()
+        self.assertEqual(RecipeIngredient.objects.first().ingredient, recipe_ingredient.ingredient)
 
     def test_recipe_set_ingredient(self):
         # set should remove any previous
@@ -70,7 +75,7 @@ class IngredientTest(TestCase):
 class RecipeIngredientTest(TestCase):
 
     def setUp(self) -> None:
-        self.recipe = Recipe.objects.create(name='recipe')
+        self.recipe = Recipe.objects.create(name='recipes')
         self.ingredient = Ingredient.objects.create(name='ingredient')
         self.ri = RecipeIngredient.objects.create(ingredient=self.ingredient, recipe=self.recipe)
 
@@ -105,7 +110,7 @@ class RecipeIngredientTest(TestCase):
 class VariationTest(TestCase):
 
     def setUp(self):
-        self.recipe = Recipe.objects.create(name='recipe')
+        self.recipe = Recipe.objects.create(name='recipes')
         ingredient1 = Ingredient.objects.create(name='ingredient1')
         ingredient2 = Ingredient.objects.create(name='ingredient2')
         self.recipe.ingredient_objects.set((ingredient1, ingredient2))
@@ -115,7 +120,7 @@ class VariationTest(TestCase):
         self.assertEqual(self.recipe, self.variant.original)
 
     def test_ingredient_inheritance(self):
-        for i1, i2 in zip(self.recipe.ingredient_objects.all().order_by('id'),  # recipe and variant share ingredients
+        for i1, i2 in zip(self.recipe.ingredient_objects.all().order_by('id'),  # recipes and variant share ingredients
                           self.variant.ingredient_objects.all().order_by('id')):
             self.assertEqual(i1, i2)
         for i1, i2 in zip(self.recipe.ingredient_objects.all().order_by('id'),  # variant and original share ingredients
@@ -130,7 +135,7 @@ class VariationTest(TestCase):
             self.assertEqual(recipe_ingredient.amount_per_serving, 10)
         for recipe_ingredient in self.recipe.recipe_ingredients.all():
             self.assertEqual(recipe_ingredient.amount_per_serving, None,
-                             msg="change in variant ingredients should not change those of the original recipe")
+                             msg="change in variant ingredients should not change those of the original recipes")
 
     def test_variation_inheritance(self):
         variant2 = Variation.objects.create(original=self.variant)
