@@ -116,12 +116,14 @@ class RecipeIngredient(models.Model):
 
 
 # TODO: Consider moving everything category-related into its own app
+# TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category
+#  with choices "ingredient" or "recipe"
 class Category(MPTTModel):
     name = models.CharField(max_length=40)
     parent = TreeForeignKey('self', blank=True, null=True, related_name='children', on_delete=models.SET_NULL)
 
-    def thing_in_branch(self, field, thing_id):
-        filter_dict = {'id': thing_id}
+    def object_already_in_family(self, field, object_id):
+        filter_dict = {'id': object_id}
         for category in self.get_family():
             if category.__getattribute__(field).filter(**filter_dict).exists():
                 return True
@@ -137,8 +139,8 @@ class Category(MPTTModel):
 class IngredientCategory(Category):
     ingredients = models.ManyToManyField(
         to='recipe.Ingredient',
-        through='recipe.IngredientCategoryConnection',
         related_name='categories',
+        through='recipe.IngredientCategoryConnection',
     )
 
 
@@ -150,29 +152,53 @@ class RecipeCategory(Category):
     )
 
 
-class IngredientCategoryConnection(models.Model):
-    ingredient = models.ForeignKey(to='recipe.Ingredient', on_delete=models.CASCADE)
-    category = models.ForeignKey(to='recipe.IngredientCategory', on_delete=models.CASCADE)
+class BaseCategoryConnection(models.Model):
+    @property
+    def category(self):
+        raise NotImplementedError()
+
+    @property
+    def attr(self):
+        raise NotImplementedError("implementing classes must specify which attr to prevent overlap with")
+
+    @property
+    def attr_name(self):  # name of Recipe/IngredientCategory m2m field
+        raise NotImplementedError()
 
     def clean(self, *args, **kwargs):
-        if not self.category.thing_in_branch("ingredient_objects", self.ingredient.id):
+        if not self.category.object_already_in_family(self.attr_name, self.attr.id):
             raise ValidationError("ingredient already in category family")
 
     def save(self, *args, **kwargs):
-        if self.category.thing_in_branch("ingredient_objects", self.ingredient.id):
+        if self.category.object_already_in_family(self.attr_name, self.attr.id):
             raise ValidationError("ingredient already in category family")
         super().save(*args, **kwargs)
 
+    class Meta:
+        abstract = True
 
-class RecipeCategoryConnection(models.Model):
-    recipe = models.ForeignKey(to='recipe.Recipe', on_delete=models.CASCADE)
-    category = models.ForeignKey(to='recipe.RecipeCategory', on_delete=models.CASCADE)
 
-    def clean(self, *args, **kwargs):
-        if not self.category.thing_in_branch("recipes", self.recipe.id):
-            raise ValidationError("recipe already in category family")
+class IngredientCategoryConnection(BaseCategoryConnection):
+    ingredient = models.ForeignKey(to='recipe.Ingredient', on_delete=models.CASCADE, related_name='category_connections')
+    category = models.ForeignKey(to='recipe.IngredientCategory', on_delete=models.CASCADE, related_name='connections')
 
-    def save(self, *args, **kwargs):
-        if self.category.thing_in_branch("recipes", self.recipe.id):
-            raise ValidationError("recipe already in category family")
-        super().save(*args, **kwargs)
+    @property
+    def attr(self):
+        return self.ingredient
+
+    @property
+    def attr_name(self):
+        return "ingredients"
+
+
+class RecipeCategoryConnection(BaseCategoryConnection):
+    recipe = models.ForeignKey(to='recipe.Recipe', on_delete=models.CASCADE, related_name='category_connections')
+    category = models.ForeignKey(to='recipe.RecipeCategory', on_delete=models.CASCADE, related_name='connections')
+
+    @property
+    def attr(self):
+        return self.recipe
+
+    @property
+    def attr_name(self):
+        return "recipes"

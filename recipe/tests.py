@@ -3,7 +3,8 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 
-from recipe.models import Recipe, Ingredient, RecipeIngredient, Variation
+from recipe.models import Recipe, Ingredient, RecipeIngredient, Variation, Category, IngredientCategory, RecipeCategory, \
+    BaseCategoryConnection, IngredientCategoryConnection, RecipeCategoryConnection
 
 User = get_user_model()
 
@@ -134,3 +135,90 @@ class VariationTest(TestCase):
     def test_variation_inheritance(self):
         variant2 = Variation.objects.create(original=self.variant)
         self.assertEqual(self.variant, variant2.original)
+
+
+class CategoriesTest(TestCase):
+
+    # === BEGIN HELPER METHODS ===
+    def setup_tree(self, cls):
+        self.middle_category = cls.objects.create(name='middle_category')
+        self.leaf_category = cls.objects.create(name='leaf_category')
+        self.root_category = cls.objects.create(name='root_category')
+        self.categories = (self.leaf_category, self.middle_category, self.root_category)
+
+        self.middle_category.parent = self.root_category
+        self.leaf_category.parent = self.middle_category
+        for cat in (self.middle_category, self.leaf_category, self.root_category):
+            cat.save()
+
+    def assertQuerysetContentsEqual(self, queryset1, queryset2):
+        for o1, o2 in zip(queryset1, queryset2):
+            self.assertEqual(o1, o2)
+    # === END HELPER METHODS ===
+
+    def test_base_connection(self):
+        self.assertTrue(BaseCategoryConnection._meta.abstract)
+
+    def test_category_model_abstract(self):
+        self.assertTrue(Category._meta.abstract)
+
+    def test_category_subclass(self):
+        self.assertTrue(issubclass(RecipeCategory, Category))
+        self.assertTrue(issubclass(IngredientCategory, Category))
+
+    def test_base_connection_subclass(self):
+        self.assertTrue(issubclass(IngredientCategoryConnection, BaseCategoryConnection))
+        self.assertTrue(issubclass(RecipeCategoryConnection, BaseCategoryConnection))
+
+    def test_mptt_tree_implemented_correctly(self):
+        for cls in (RecipeCategory, IngredientCategory):
+            self.setup_tree(cls)
+            self.assertQuerysetContentsEqual(self.root_category.get_family(), self.middle_category.get_family())
+            self.assertQuerysetContentsEqual(self.middle_category.get_family(), self.leaf_category.get_family())
+            self.assertEqual(self.root_category.get_family().count(), 3)
+            self.assertTrue(all(
+                category in self.root_category.get_family() for category in self.categories
+            ))
+
+    def test_insert_same_object_twice_in_family_fails(self):
+        self.setup_tree(IngredientCategory)
+        ingredient = Ingredient.objects.create(name='test')
+        IngredientCategoryConnection.objects.create(ingredient=ingredient, category=self.leaf_category)
+        try:
+            IngredientCategoryConnection.objects.create(ingredient=ingredient, category=self.root_category)
+        except ValidationError:
+            pass
+        else:
+            self.fail()
+
+        self.setup_tree(RecipeCategory)
+        recipe = Recipe.objects.create(name='test')
+        RecipeCategoryConnection.objects.create(recipe=recipe, category=self.middle_category)
+        try:
+            RecipeCategoryConnection.objects.create(recipe=recipe, category=self.root_category)
+        except ValidationError:
+            pass
+        else:
+            self.fail()
+
+    def test_only_object_of_right_type_can_be_present_in_type_category(self):
+        ingredient = Ingredient.objects.create(name='test1')
+        recipe = Recipe.objects.create(name='test1')
+
+        self.setup_tree(IngredientCategory)
+        IngredientCategoryConnection.objects.create(ingredient=ingredient, category=self.leaf_category)
+        try:
+            RecipeCategoryConnection.objects.create(recipe=recipe, category=self.middle_category)
+        except ValueError:
+            pass
+        else:
+            self.fail()
+
+        self.setup_tree(RecipeCategory)
+        RecipeCategoryConnection.objects.create(recipe=recipe, category=self.middle_category)
+        try:
+            IngredientCategoryConnection.objects.create(ingredient=ingredient, category=self.leaf_category)
+        except ValueError:
+            pass
+        else:
+            self.fail()
