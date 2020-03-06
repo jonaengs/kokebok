@@ -10,7 +10,12 @@ from mptt.models import MPTTModel
 class Recipe(models.Model):
     date_created = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=128)
-    default_servings = models.IntegerField(blank=True, null=True)
+    default_servings = models.PositiveIntegerField(blank=True, null=True)
+    ingredient_objects = models.ManyToManyField(
+        to='recipe.Ingredient',
+        through='recipe.RecipeIngredient',
+        related_name='recipes',
+    )
 
     # community interactions
     author = models.ForeignKey(
@@ -24,6 +29,11 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
+
+    def update_recipe_ingredient(self, ingredient_id, attr, value):
+        recipe_ingredient = self.recipe_ingredients.get(ingredient_id__exact=ingredient_id)
+        recipe_ingredient.__setattr__(attr, value)
+        recipe_ingredient.save()
 
 
 # variation on a recipe. Allow users to "subclass" other recipes
@@ -41,7 +51,7 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
     def save(self, *args, **kwargs):
         if not self.pk:  # on creation, copy over ingredient connections from original recipe
             super().save(*args, **kwargs)
-            for ingredient in self.original.ingredient_connections.all():
+            for ingredient in self.original.recipe_ingredients.all():
                 ingredient.recipe = self
                 ingredient.pk = None  # must also set id = None if RecipeIngredient every subclasses another model
                 ingredient.save()
@@ -64,13 +74,8 @@ class Favorite(models.Model):
 
 
 class Ingredient(models.Model):
-    name = models.CharField(max_length=40, unique=True)  # unique??
+    name = models.CharField(max_length=64, unique=True)  # unique??
     ubiquitous = models.BooleanField(default=False)
-    recipes = models.ManyToManyField(
-        to='recipe.Recipe',
-        through='recipe.RecipeIngredient',
-        related_name='ingredients',
-    )
 
     def __str__(self):
         return self.name
@@ -88,12 +93,12 @@ class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         to='recipe.Recipe',
         on_delete=models.CASCADE,
-        related_name='ingredient_connections'
+        related_name='recipe_ingredients'
     )
     ingredient = models.ForeignKey(
         to='recipe.Ingredient',
         on_delete=models.CASCADE,
-        related_name='recipe_connections'
+        related_name='recipe_usages'
     )
     amount_per_serving = models.PositiveIntegerField(
         blank=True,
@@ -150,11 +155,11 @@ class IngredientCategoryConnection(models.Model):
     category = models.ForeignKey(to='recipe.IngredientCategory', on_delete=models.CASCADE)
 
     def clean(self, *args, **kwargs):
-        if not self.category.thing_in_branch("ingredients", self.ingredient.id):
+        if not self.category.thing_in_branch("ingredient_objects", self.ingredient.id):
             raise ValidationError("ingredient already in category family")
 
     def save(self, *args, **kwargs):
-        if self.category.thing_in_branch("ingredients", self.ingredient.id):
+        if self.category.thing_in_branch("ingredient_objects", self.ingredient.id):
             raise ValidationError("ingredient already in category family")
         super().save(*args, **kwargs)
 
