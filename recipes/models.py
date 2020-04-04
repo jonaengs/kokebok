@@ -1,14 +1,12 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from mptt.fields import TreeForeignKey
 from mptt.models import MPTTModel
 
 
 class Recipe(models.Model):
-    date_created = models.DateTimeField(default=timezone.now)
     name = models.CharField(max_length=128)
     default_servings = models.PositiveIntegerField(blank=True, null=True)
     ingredient_objects = models.ManyToManyField(
@@ -16,6 +14,10 @@ class Recipe(models.Model):
         through='recipes.RecipeIngredient',
         related_name='recipes',
     )
+
+    # timestamps
+    datetime_created = models.DateTimeField(auto_now_add=True)
+    datetime_updated = models.DateTimeField(auto_now=True)
 
     # community interactions
     author = models.ForeignKey(
@@ -60,6 +62,7 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
 
 
 # TODO: Figure out where to put Favorites. A separate app for user interactions, or maybe in the users app?
+# TODO: Rename? Maybe to "saved" or something like that
 class Favorite(models.Model):
     user = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
@@ -116,15 +119,18 @@ class RecipeIngredient(models.Model):
 
 
 # TODO: Consider moving everything category-related into its own app
-# TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category
-#  with choices "ingredient" or "recipes"
+# TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category.
+#  with choices "ingredient" or "recipes" as choices. And actually, maybe reconsider if things need to split at all.
+#  Some ingredients may require recipes themselves.
 class Category(MPTTModel):
     name = models.CharField(max_length=40)
     parent = TreeForeignKey('self', blank=True, null=True, related_name='children', on_delete=models.SET_NULL)
 
     def object_already_in_family(self, field, object_id):
+        family = self.get_ancestors() | self.get_children()
+        print("family:", family)
         filter_dict = {'id': object_id}
-        for category in self.get_family():
+        for category in family:
             if category.__getattribute__(field).filter(**filter_dict).exists():
                 return True
         return False
@@ -143,6 +149,9 @@ class IngredientCategory(Category):
         through='recipes.IngredientCategoryConnection',
     )
 
+    class Meta:
+        verbose_name_plural = "Ingredient categories"
+
 
 class RecipeCategory(Category):
     recipes = models.ManyToManyField(
@@ -150,6 +159,9 @@ class RecipeCategory(Category):
         related_name='categories',
         through='recipes.RecipeCategoryConnection'
     )
+
+    class Meta:
+        verbose_name_plural = "Recipe categories"
 
 
 class BaseCategoryConnection(models.Model):
@@ -166,12 +178,12 @@ class BaseCategoryConnection(models.Model):
         raise NotImplementedError()
 
     def clean(self, *args, **kwargs):
-        if not self.category.object_already_in_family(self.attr_name, self.attr.id):
-            raise ValidationError("ingredient already in category family")
+        if self.category.object_already_in_family(self.attr_name, self.attr.id):
+            raise ValidationError("ingredient already in category family (c)")
 
     def save(self, *args, **kwargs):
         if self.category.object_already_in_family(self.attr_name, self.attr.id):
-            raise ValidationError("ingredient already in category family")
+            raise ValidationError("ingredient already in category family (s)")
         super().save(*args, **kwargs)
 
     class Meta:

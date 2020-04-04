@@ -1,12 +1,12 @@
-from django.views.generic import ListView, CreateView
+from django.views.generic import CreateView
 from rest_framework import generics
 
 from recipes.models import Recipe, Ingredient
 from recipes.serializers import RecipeSerializer
 
 
-class RecipeListAPI(generics.ListCreateAPIView):
-    queryset = Recipe.objects.all()
+class RecipeListAPI(generics.ListAPIView):
+    queryset = Recipe.objects
     serializer_class = RecipeSerializer
 
 
