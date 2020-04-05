@@ -1,0 +1,85 @@
+* {
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+
+    background-color: rgb(208, 230, 238);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+
+body {
+    height: 98%; /* prevents unnecessary scroll bar, but may cause other issues */
+}
+
+.container {
+    margin-left: 3%;
+    margin-right: 3%;
+    display: grid;
+}
+
+.content-container, .header {
+    background-color: white;
+    border-radius: 3px;
+    box-shadow: 5px 5px 5px rgb(159, 169, 173);
+
+    padding: 2%;
+    margin: 1%;
+    width: 100%;
+
+    font-size: 1.2em;
+}
+
+.header {
+    width: 30%;
+    padding: 1%;
+    text-align: center;
+}
+
+
+input[type="text"], input[type="number"], select {
+    border-radius: 3px;
+    box-shadow: 2px 2px 2px rgb(159, 169, 173);
+    border-style: solid;
+    border-width: 2px;
+    border-color: lightgray;
+
+    color: rgb(49, 49, 49);
+    font-size: 1em;
+    font-weight: 500;
+
+    padding-top: 1%;
+    padding-bottom: 1%;
+    padding-left: 1%;
+    width: 100%;
+}
+
+input:focus, select:focus {
+    outline: none;
+}
+
+input[type="checkbox"] {
+    zoom: 1.2;
+}
+
+button {
+    border: 2px solid black;
+    padding: 10px 20px;
+    background-color: white;
+    cursor: pointer;
+
+    transition: background-color 150ms linear;
+}
+
+button:hover, button:focus {
+    background-color: rgb(200, 250, 200);
+}
+
+
+@media only screen and (max-width: 1200px) {
+    .container {
+        font-size: 1.5em !important;
+    }
+}

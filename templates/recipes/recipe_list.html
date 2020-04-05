@@ -3,9 +3,24 @@
 {% block title %}Recipes{% endblock %}
 
 {% block content %}
-    <ol>
+    {% include 'recipes/search.html' %}
+    <ol class="list-group">
     {% for recipe in recipe_list %}
-        <li>{{ recipe }}</li>
+        <li class="list-group-item">{{ recipe }}
+        {% if recipe.default_servings %}
+            - serves {{ recipe.default_servings }} people.
+        {% endif %}
+        </li>
+        <ul class="list-group">
+            {% for recipe_ingredient in recipe.recipe_ingredients.all %}
+            <li class="list-group-item">
+                {{ recipe_ingredient.ingredient }}
+                {% if recipe_ingredient.amount_per_serving %}
+                    - {{ recipe_ingredient.amount_per_serving }} {{ recipe_ingredient.measurement }}
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
     {% endfor %}
     </ol>
 {% endblock %}

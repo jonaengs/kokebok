@@ -21,6 +21,6 @@ from pages.views import HomeView
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    path('recipes/', include('recipes.urls')),
-    path('', HomeView.as_view(), name='home'),
+    path('', include('recipes.urls')),
+    # path('', HomeView.as_view(), name='home'),
 ]

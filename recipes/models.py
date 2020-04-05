@@ -53,27 +53,13 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
     def save(self, *args, **kwargs):
         if not self.pk:  # on creation, copy over ingredient connections from original recipes
             super().save(*args, **kwargs)
+            # TODO: Figure out if this copies over things or just moves them?
             for ingredient in self.original.recipe_ingredients.all():
                 ingredient.recipe = self
                 ingredient.pk = None  # must also set id = None if RecipeIngredient every subclasses another model
                 ingredient.save()
         else:
             super().save(*args, **kwargs)
-
-
-# TODO: Figure out where to put Favorites. A separate app for user interactions, or maybe in the users app?
-# TODO: Rename? Maybe to "saved" or something like that
-class Favorite(models.Model):
-    user = models.ForeignKey(
-        to=settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='favorites',
-    )
-    recipe = models.ForeignKey(
-        to='recipes.Recipe',
-        on_delete=models.CASCADE,
-        related_name='favorites'
-    )
 
 
 class Ingredient(models.Model):
@@ -88,9 +74,9 @@ class RecipeIngredient(models.Model):
     class Measurements(models.TextChoices):
         GRAMS = 'g', _('grams')
         LITERS = 'L', _('liters')
-        TABLESPOONS = 'Tb.', _('tablespoons')
+        TABLESPOONS = 'tbsp', _('tablespoons')
         TEASPOONS = 'tsp', _('teaspoons')
-        COUNT = '', _('')
+        COUNT = '', _('count')
         __empty__ = _('Unknown')
 
     recipe = models.ForeignKey(

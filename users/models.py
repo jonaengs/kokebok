@@ -1,4 +1,6 @@
 import uuid as uuid
+
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.base_user import AbstractBaseUser
@@ -30,3 +32,17 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+# TODO: Rename? Maybe to "saved" or something like that
+class Favorite(models.Model):
+    user = models.ForeignKey(
+        to=settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='favorites',
+    )
+    recipe = models.ForeignKey(
+        to='recipes.Recipe',
+        on_delete=models.CASCADE,
+        related_name='favorites'
+    )
