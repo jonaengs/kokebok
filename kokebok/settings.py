@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     # 3rd party
     'rest_framework',
     'debug_toolbar',
+    'ckeditor',
 
     # mine
     'users.apps.UsersConfig',

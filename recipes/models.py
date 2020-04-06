@@ -1,3 +1,4 @@
+from ckeditor.fields import RichTextField
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -8,6 +9,7 @@ from mptt.models import MPTTModel
 
 class Recipe(models.Model):
     name = models.CharField(max_length=128)
+    content = RichTextField(blank=True)
     default_servings = models.PositiveIntegerField(blank=True, null=True)
     ingredient_objects = models.ManyToManyField(
         to='recipes.Ingredient',
@@ -109,7 +111,7 @@ class RecipeIngredient(models.Model):
 #  with choices "ingredient" or "recipes" as choices. And actually, maybe reconsider if things need to split at all.
 #  Some ingredients may require recipes themselves.
 class Category(MPTTModel):
-    name = models.CharField(max_length=40)
+    name = models.CharField(max_length=40, unique=True)
     parent = TreeForeignKey('self', blank=True, null=True, related_name='children', on_delete=models.SET_NULL)
 
     def object_already_in_family(self, field, object_id):

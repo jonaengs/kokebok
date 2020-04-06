@@ -32,10 +32,10 @@ def search(request):
         include_ubiquitous = query.get('include-ubiquitous') == "on"
         ingredients = query.get('ingredients', '').split(",")
         if ingredients:
-            if include_ubiquitous:
-                ingredients += Ingredient.objects.filter(ubiquitous=True).values_list('name', flat=True)
             recipes = Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients).distinct()
             if exclusive:
+                if include_ubiquitous:  # Will include every single recipe using a ubiq. ingr. if done for inclusive
+                    ingredients += Ingredient.objects.filter(ubiquitous=True).values_list('name', flat=True)
                 for recipe in list(recipes):
                     if any(ingredient not in ingredients for ingredient in
                            recipe.ingredient_objects.all().values_list('name', flat=True)):
