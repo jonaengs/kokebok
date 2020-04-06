@@ -1,17 +1,30 @@
-<form class="form">
-  <div class="search">
-    <input type="text" id="search" name="search">
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/recipes/search.css' %}">
+
+<form class="search-form" autocomplete="off" onsubmit="set_ingredients()">
+  <div class="form-item search-bar">
+    <label for="search">Ingredients</label>
+    <input list="ingredients" id="ingredient-search" name="ingredients" autofocus
+    onchange="append_ingredient_to_list(event)">
+    <datalist id="ingredients">
+      {% for ingredient in ingredients %}
+        <option value="{{ ingredient }}"></option>
+      {% endfor  %}
+    </datalist>
   </div>
 
-  <div class="same-row">
-    <div class="radio-group">
+  <div class="form-item radio-group">
+    <label for="">Filtering:
       <label for="radio-exclusive">exclusive</label>
-      <input type="radio" id="radio-exclusive" name="exclusive" value="True">
+      <input type="radio" id="radio-exclusive" name="exclusive" value="True" checked>
 
       <label for="radio-inclusive">inclusive</label>
       <input type="radio" id="radio-inclusive" name="exclusive" value="False">
-    </div>
+    </label>
+  </div>
 
+  <div class="form-item">
+    <label for="sort_by">Sort by</label>
     <select name="sort_by" id="sort_by">
       <option value="alphabetical">alphabetical</option>
       <option value="popular">popular</option>
@@ -19,5 +32,12 @@
     </select>
   </div>
 
-  <button type="submit">search</button>
+  <div class="form-item">
+    <label for="include-ubiquitous">Assume ubiquitous ingredients: </label>
+    <input type="checkbox" id="include-ubiquitous" name="include-ubiquitous" checked>
+  </div>
+
+  <div class="form-item">
+    <button type="submit">search</button>
+  </div>
 </form>

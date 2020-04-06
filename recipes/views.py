@@ -2,7 +2,6 @@ from django.shortcuts import render
 from django.views.generic import CreateView, ListView
 from rest_framework import generics
 
-from recipes.forms import SearchForm
 from recipes.models import Recipe, Ingredient
 from recipes.serializers import RecipeSerializer
 
@@ -23,18 +22,23 @@ class RecipeCreateView(CreateView):
 class RecipeListView(ListView):
     model = Recipe
 
-    # def get_context_data(self, *args, object_list=None, **kwargs):
-        # return super(RecipeListView, self).get_context_data(*args, object_list=object_list, form=SearchForm(), **kwargs)
-
 
 def search(request):
     query = request.GET
+    ctx = {'ingredients': Ingredient.objects.all()}
     if query:
-        exclusive = bool(query.get('exclusive', False))  # exclusive = False => inclusive
+        exclusive = query.get('exclusive') == "True"  # exclusive = False => inclusive
         sort_by = query.get('sort_by', 'alphabetical')  # should support: "recent", "popular", "alpha desc".
-        ingredients = query.get('ingredients', '').split(",")  # comma-separated
+        include_ubiquitous = query.get('include-ubiquitous') == "on"
+        ingredients = query.get('ingredients', '').split(",")
         if ingredients:
-            return "good!"
-        return ":("
-    return render(request, 'home.html')
-
+            if include_ubiquitous:
+                ingredients += Ingredient.objects.filter(ubiquitous=True).values_list('name', flat=True)
+            recipes = Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients).distinct()
+            if exclusive:
+                for recipe in list(recipes):
+                    if any(ingredient not in ingredients for ingredient in
+                           recipe.ingredient_objects.all().values_list('name', flat=True)):
+                        recipes = recipes.exclude(id=recipe.id)
+            ctx.update({'recipes': recipes})
+    return render(request, 'home.html', ctx)

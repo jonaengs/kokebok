@@ -1,4 +1,5 @@
 django >= 3
 django-mptt >= 0.11
 django-rest-framework >= 3.11
+django-debug-toolbar
 # django-cors-headers >= 3.2.1
