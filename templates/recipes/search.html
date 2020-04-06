@@ -2,42 +2,59 @@
 <link rel="stylesheet" href="{% static 'css/recipes/search.css' %}">
 
 <form class="search-form" autocomplete="off" onsubmit="set_ingredients()">
-  <div class="form-item search-bar">
-    <label for="search">Ingredients</label>
-    <input list="ingredients" id="ingredient-search" name="ingredients" autofocus
-    onchange="append_ingredient_to_list(event)">
-    <datalist id="ingredients">
-      {% for ingredient in ingredients %}
-        <option value="{{ ingredient }}"></option>
-      {% endfor  %}
-    </datalist>
+  <div class="field">
+    <label class="label">Ingredient search</label>
+    <div class="control">
+      <input list="ingredients" id="ingredient-search" name="ingredients" class="input"
+             placeholder="add ingredients" autofocus
+             onchange="append_ingredient_to_list()">
+      <datalist id="ingredients">
+        {% for ingredient in ingredients %}
+          <option value="{{ ingredient }}"></option>
+        {% endfor %}
+      </datalist>
+    </div>
   </div>
 
-  <div class="form-item radio-group">
-    <label for="">Filtering:
-      <label for="radio-exclusive">exclusive</label>
-      <input type="radio" id="radio-exclusive" name="exclusive" value="True" checked>
+  <fieldset>
+    <legend class="has-text-weight-bold">Filtering</legend>
+    <div class="field">
+      <div class="control">
+        <label for="radio-exclusive">exclusive</label>
+        <input type="radio" id="radio-exclusive" name="exclusive" value="True" checked>
 
-      <label for="radio-inclusive">inclusive</label>
-      <input type="radio" id="radio-inclusive" name="exclusive" value="False">
-    </label>
+        <label for="radio-inclusive">inclusive</label>
+        <input type="radio" id="radio-inclusive" name="exclusive" value="False">
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="field">
+    <label for="sort_by" class="label">Sort by</label>
+    <div class="control">
+      <div class="select">
+        <select name="sort_by" id="sort_by">
+          <option value="alphabetical">alphabetical</option>
+          <option value="popular">popular</option>
+          <option value="recent">recent</option>
+        </select>
+      </div>
+    </div>
   </div>
 
-  <div class="form-item">
-    <label for="sort_by">Sort by</label>
-    <select name="sort_by" id="sort_by">
-      <option value="alphabetical">alphabetical</option>
-      <option value="popular">popular</option>
-      <option value="recent">recent</option>
-    </select>
+  <div class="field">
+    <div class="control">
+      <legend class="has-text-weight-bold">Ubiquitous ingredients</legend>
+      <label class="checkbox">
+        <input type="checkbox" id="include-ubiquitous" name="include-ubiquitous" checked>
+        Assume present
+      </label>
+    </div>
   </div>
 
-  <div class="form-item">
-    <label for="include-ubiquitous">Assume ubiquitous ingredients: </label>
-    <input type="checkbox" id="include-ubiquitous" name="include-ubiquitous" checked>
-  </div>
-
-  <div class="form-item">
-    <button type="submit">search</button>
+  <div class="field is-grouped">
+    <div class="control">
+      <button class="button is-link">Search</button>
+    </div>
   </div>
 </form>

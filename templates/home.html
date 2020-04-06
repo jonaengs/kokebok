@@ -1,9 +1,20 @@
 {% extends '_base.html' %}
 
 {% block body %}
-  {% include 'recipes/search.html' %}
-  <p>ingredients:</p>
-  <ul id="ingredient-list"></ul>
+  <h1 class="title">
+    Recipe search
+  </h1>
+  <p class="subtitle">
+    Enter your ingredients into the search bar, adjust the search settings to your liking and find today's dinner.
+  </p>
+  <div class="columns">
+    <div class="column is-4">
+      {% include 'recipes/search.html' %}
+    </div>
+    <div class="column" id="selected-ingredients">
+      <p class="has-text-weight-bold field">Selected ingredients</p>
+    </div>
+  </div>
 
   {% if recipes %}
     <h3>recipes found:</h3>
@@ -29,15 +40,23 @@
           ingredient_search.value = "";
       }
 
-      let ingredients_ul = document.getElementById("ingredient-list");
+      let ingredients_list = document.getElementById("selected-ingredients");
       function add_to_ingredient_list(ingredient) {
-          let new_li = document.createElement("li");
-          new_li.innerHTML = ingredient;
-          ingredients_ul.appendChild(new_li);
+          let tag_template = '<p class="field" id="' + ingredient + '-select-p">' +
+          '<span class="tag is-primary is-medium"><span class=selected_ingredient_span>' + ingredient + '</span>' +
+          '<button class="delete is-small" onclick="put_back_ingredient(event)"></button></span></p>';
+          ingredients_list.insertAdjacentHTML('beforeend', tag_template)
+      }
+      function set_ingredients(e) {
+          ingredient_search.value = selected_ingredients.join(",");
       }
 
-      function set_ingredients(e) {
-        ingredient_search.value = selected_ingredients.join(",");
+      function put_back_ingredient(event) {
+          let ingredient_name = event.target.previousSibling.innerText;
+          let ingredient_p = document.getElementById(ingredient_name + "-select-p");
+          ingredient_p.remove();
+          selected_ingredients = selected_ingredients.filter(ingr => ingr !== ingredient_name);
+          available_ingredients.push()
       }
   </script>
 {% endblock %}
