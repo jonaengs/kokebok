@@ -1,14 +1,14 @@
-<div class="row content">
-  <article class="media">
-    <div class="media-content">
-      <h3 class="title is-4">
-        <a href="{{ recipe.get_absolute_url }}">{{ recipe.name }}</a>
-      </h3>
-      <p>
-        <span class="has-text-weight-bold">Ingredients: </span>
-        {{ recipe.ingredient_objects.all|join:", " }}
-      </p>
+<article class="media">
+  <div class="media-content">
+    <h3 class="title is-4">
+      <a href="{{ recipe.get_absolute_url }}">{{ recipe.name }}</a>
+    </h3>
+    <p>
+      <span class="has-text-weight-bold">Ingredients: </span>
+      {{ recipe.ingredient_objects.all|join:", " }}
+    </p>
+    <div class="content">
+      <p>{{ recipe.content|safe|truncatechars_html:140 }}</p>
     </div>
-  </article>
-
-</div>
+  </div>
+</article>

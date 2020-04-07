@@ -16,7 +16,9 @@
       <div class="column is-5">
         <h3 class="title is-2">Recipes found:</h3>
         {% for recipe in recipes %}
-          {% include 'recipes/recipe_listing.html' %}
+          <div class="row content">
+            {% include 'recipes/recipe_listing.html' %}
+          </div>
         {% endfor %}
       </div>
     {% endif %}
