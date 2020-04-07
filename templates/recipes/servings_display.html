@@ -1,0 +1,31 @@
+{% load mathfilters %}
+
+{% if recipe.default_servings %}
+  <p>
+    <span class="has-text-weight-bold">Serves:</span>
+    <span id="minus-span is-small" class="servings-modifier tag is-small" onclick="decrServings()">
+      <i class="fas fa-minus"></i>
+    </span>
+    <span id="servings" class="has-text-weight-bold">
+      {{ recipe.default_servings }}
+    </span>
+    <span id="plus-span is-small" class="servings-modifier tag is-small" onclick="incrServings()">
+      <i class="fas fa-plus"></i>
+    </span>
+  </p>
+  <ul>
+    {% for recipe_ingredient in recipe.recipe_ingredients.all %}
+      <li>{{ recipe_ingredient.ingredient }}:
+        <span class="serving-span">
+        {{ recipe_ingredient.amount_per_serving|mul:recipe.default_servings }}
+      </span>
+        {{ recipe_ingredient.measurement }}</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <ul>
+    {% for ingredient in recipe.ingredient_objects.all %}
+      <li>{{ ingredient }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}

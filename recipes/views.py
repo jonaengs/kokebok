@@ -22,6 +22,9 @@ class RecipeCreateView(CreateView):
 class RecipeListView(ListView):
     model = Recipe
 
+    def get_queryset(self):
+        return self.model.objects.prefetch_related('ingredient_objects')
+
 
 class RecipeDetailView(DetailView):
     model = Recipe
@@ -32,11 +35,9 @@ def search(request):
     ctx = {'ingredients': Ingredient.objects.all()}
     if query:
         exclusive = query.get('exclusive') == "True"  # exclusive = False => inclusive
-        sort_by = query.get('sort_by', 'alphabetical')  # should support: "recent", "popular", "alpha desc".
+        # sort_by = query.get('sort_by', 'alphabetical')  # should support: "recent", "popular", "alpha desc".
         ingredients = query.get('ingredients', '').split(",")
         if ingredients:
-            print(Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients))
-            print(ingredients)
             recipes = Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients).distinct()
             if exclusive:
                 include_ubiquitous = query.get('include-ubiquitous') == "on"

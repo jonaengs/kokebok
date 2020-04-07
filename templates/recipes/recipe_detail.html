@@ -1,5 +1,9 @@
 {% extends '_base.html' %}
-{% load mathfilters %}
+{% load static %}
+
+{% block style %}
+  <link rel="stylesheet" href="{% static 'css/recipes/recipe_detail.css' %}">
+{% endblock %}
 
 {% block content %}
   <div class="content">
@@ -10,22 +14,7 @@
           <h4 class="subtitle is-4">
             Ingredients:
           </h4>
-          {% if recipe.default_servings %}
-            <p>Serves: <span id="servings" class="has-text-weight-bold">{{ recipe.default_servings }}</span></p>
-            <ul>
-              {% for recipe_ingredient in recipe.recipe_ingredients.all %}
-                <li>{{ recipe_ingredient.ingredient }}:
-                  {{ recipe_ingredient.amount_per_serving|mul:recipe.default_servings }} {{ recipe_ingredient.measurement }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <ul>
-              {% for ingredient in recipe.ingredient_objects.all %}
-                <li>{{ ingredient }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-
+          {% include 'recipes/servings_display.html' %}
         </div>
       </div>
       <div class="column is-6">
@@ -33,4 +22,9 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+
+{% block scripts %}
+  <script src="{% static 'js/recipes/adjustServings.js' %}"></script>
 {% endblock %}
