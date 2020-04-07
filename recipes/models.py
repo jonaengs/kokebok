@@ -91,6 +91,7 @@ class Ingredient(models.Model):
 class RecipeIngredient(models.Model):
     class Measurements(models.TextChoices):
         GRAMS = 'g', _('grams')
+        DESILITERS = 'dl', _('deciliters')
         LITERS = 'L', _('liters')
         TABLESPOONS = 'tbsp', _('tablespoons')
         TEASPOONS = 'tsp', _('teaspoons')
@@ -107,7 +108,7 @@ class RecipeIngredient(models.Model):
         on_delete=models.CASCADE,
         related_name='recipe_usages'
     )
-    amount_per_serving = models.PositiveIntegerField(
+    amount_per_serving = models.FloatField(
         blank=True,
         null=True,
     )
@@ -120,6 +121,12 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return self.recipe.name + ": " + self.ingredient.name
+
+    def clean(self, *args, **kwargs):
+        if self.amount_per_serving < 0:
+            raise ValidationError("Amount per serving cannot be negative")
+        return super(RecipeIngredient, self).super(self, *args, **kwargs)
+
 
 
 # TODO: Consider moving everything category-related into its own app

@@ -3,9 +3,13 @@
 {% block title %}Recipes{% endblock %}
 
 {% block content %}
+  <div class="tile is-ancestor">
     {% for recipe in recipe_list %}
-        <div class="card">
+      <div class="tile is-parent">
+        <div class="tile is-child box">
           {% include 'recipes/recipe_listing.html' %}
         </div>
+      </div>
     {% endfor %}
+  </div>
 {% endblock %}
