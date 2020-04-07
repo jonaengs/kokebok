@@ -12,7 +12,7 @@ class RecipeIngredientForm(forms.ModelForm):
 class RecipeForm(forms.ModelForm):
     class Meta:
         model = Recipe
-        fields = '__all__'
+        fields = ('name', 'content', 'default_servings', 'public')
 
 
 class SearchForm(forms.Form):

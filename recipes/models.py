@@ -45,10 +45,10 @@ class Recipe(models.Model):
     def get_absolute_url(self):
         return reverse('recipe_detail', kwargs={'uuid': self.id, 'slug': self.slug})
 
-    def save(self, **kwargs):
+    def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
-        return super(Recipe, self).save(**kwargs)
+        return super(Recipe, self).save(*args, **kwargs)
 
     def update_recipe_ingredient(self, ingredient_id, attr, value):
         recipe_ingredient = self.recipe_ingredients.get(ingredient_id__exact=ingredient_id)
@@ -66,18 +66,11 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
         related_name='variations',
     )
 
-    # TODO: it may be inefficient to copy every ingredient connection for every variation.
-    #  Consider saving differences between original and variation instead. (<- may require tree-structured models)
-    def save(self, *args, **kwargs):
+    def save(self, **kwargs):
         if not self.pk:  # on creation, copy over ingredient connections from original recipes
-            super().save(*args, **kwargs)
-            # TODO: Figure out if this copies over things or just moves them?
-            for ingredient in self.original.recipe_ingredients.all():
-                ingredient.recipe = self
-                ingredient.pk = None  # must also set id = None if RecipeIngredient every subclasses another model
-                ingredient.save()
-        else:
-            super().save(*args, **kwargs)
+            for k, v in vars(self.original).items():
+                self.__setattr__(k, v)
+        return super().save(**kwargs)
 
 
 class Ingredient(models.Model):
@@ -91,6 +84,7 @@ class Ingredient(models.Model):
 class RecipeIngredient(models.Model):
     class Measurements(models.TextChoices):
         GRAMS = 'g', _('grams')
+        KILOGRAMS = 'kg', _('kilograms')
         DESILITERS = 'dl', _('deciliters')
         LITERS = 'L', _('liters')
         TABLESPOONS = 'tbsp', _('tablespoons')
@@ -122,11 +116,10 @@ class RecipeIngredient(models.Model):
     def __str__(self):
         return self.recipe.name + ": " + self.ingredient.name
 
-    def clean(self, *args, **kwargs):
+    def clean(self):
         if self.amount_per_serving < 0:
             raise ValidationError("Amount per serving cannot be negative")
-        return super(RecipeIngredient, self).super(self, *args, **kwargs)
-
+        return super(RecipeIngredient, self).clean()
 
 
 # TODO: Consider moving everything category-related into its own app
@@ -139,7 +132,6 @@ class Category(MPTTModel):
 
     def object_already_in_family(self, field, object_id):
         family = self.get_ancestors() | self.get_children()
-        print("family:", family)
         filter_dict = {'id': object_id}
         for category in family:
             if category.__getattribute__(field).filter(**filter_dict).exists():
@@ -202,7 +194,8 @@ class BaseCategoryConnection(models.Model):
 
 
 class IngredientCategoryConnection(BaseCategoryConnection):
-    ingredient = models.ForeignKey(to='recipes.Ingredient', on_delete=models.CASCADE, related_name='category_connections')
+    ingredient = models.ForeignKey(to='recipes.Ingredient', on_delete=models.CASCADE,
+                                   related_name='category_connections')
     category = models.ForeignKey(to='recipes.IngredientCategory', on_delete=models.CASCADE, related_name='connections')
 
     @property

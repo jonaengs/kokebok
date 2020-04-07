@@ -31,9 +31,18 @@ class RecipeAdmin(admin.ModelAdmin):
         RecipeIngredientInline,
     ]
 
+    special_fields = ('author', 'datetime_created', 'datetime_updated')
 
-class VariationAdmin(RecipeAdmin):
-    pass
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        if not obj:
+            self.exclude = self.special_fields + ('slug',)
+        else:
+            self.readonly_fields = self.special_fields
+        return super(RecipeAdmin, self).get_form(request, obj, change, **kwargs)
+
+
+class VariationAdmin(admin.ModelAdmin):
+    fields = ('original', )
 
 
 admin.site.register(Variation, VariationAdmin)

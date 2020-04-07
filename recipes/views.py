@@ -1,8 +1,12 @@
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.generic import CreateView, ListView, DetailView
 from rest_framework import generics
 
-from recipes.models import Recipe, Ingredient
+from recipes.forms import RecipeForm
+from recipes.measurement_converter import conversions
+from recipes.models import Recipe, Ingredient, RecipeIngredient
+from recipes.scrape_matprat import scrape_matprat
 from recipes.serializers import RecipeSerializer
 
 
@@ -29,6 +33,35 @@ class RecipeListView(ListView):
 class RecipeDetailView(DetailView):
     model = Recipe
 
+
+def scrape_view(request):
+    url = "https://www.matprat.no/oppskrifter/kos/lammestek-med-appelsinsaus/"
+    scrape = scrape_matprat(url)
+    recipe_form = RecipeForm(initial={
+        'name': scrape['name'],
+        'content': scrape['content'],
+        'default_servings': int(scrape['default_servings']),
+        'public': True
+    })
+    recipe = Recipe.objects.create(
+        name=scrape['name'],
+        default_servings=int(scrape['default_servings']),
+        public=True
+    )
+    recipe.content = scrape['content']
+    recipe.save()
+    for a, m, i in scrape["ami"]:
+        if not Ingredient.objects.filter(name=i).exists():
+            ingr = Ingredient.objects.create(name=i)
+        else:
+            ingr = Ingredient.objects.get(name=i)
+        RecipeIngredient.objects.create(
+            recipe=recipe,
+            ingredient=ingr,
+            amount_per_serving=int(a),
+            measurement=conversions[m]
+        )
+    return HttpResponse('did scraping')
 
 def search(request):
     query = request.GET
