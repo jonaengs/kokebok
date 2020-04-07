@@ -1,3 +1,5 @@
+import uuid
+
 from ckeditor.fields import RichTextField
 from django.conf import settings
 from django.core.exceptions import ValidationError

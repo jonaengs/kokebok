@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, ListView, DetailView
 from rest_framework import generics
 
 from recipes.models import Recipe, Ingredient
@@ -23,17 +23,21 @@ class RecipeListView(ListView):
     model = Recipe
 
 
+class RecipeDetailView(DetailView):
+    model = Recipe
+
+
 def search(request):
     query = request.GET
     ctx = {'ingredients': Ingredient.objects.all()}
     if query:
         exclusive = query.get('exclusive') == "True"  # exclusive = False => inclusive
         sort_by = query.get('sort_by', 'alphabetical')  # should support: "recent", "popular", "alpha desc".
-        include_ubiquitous = query.get('include-ubiquitous') == "on"
         ingredients = query.get('ingredients', '').split(",")
         if ingredients:
             recipes = Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients).distinct()
             if exclusive:
+                include_ubiquitous = query.get('include-ubiquitous') == "on"
                 if include_ubiquitous:  # Will include every single recipe using a ubiq. ingr. if done for inclusive
                     ingredients += Ingredient.objects.filter(ubiquitous=True).values_list('name', flat=True)
                 for recipe in list(recipes):

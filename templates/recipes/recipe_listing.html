@@ -1,0 +1,13 @@
+<div class="row content">
+  <article class="media">
+  <div class="media-content">
+
+  <h3 class="title is-4">{{ recipe.name }}</h3>
+  <p>
+    <span class="has-text-weight-bold">Ingredients: </span>
+    {{ recipe.ingredient_objects.all|join:", " }}
+  </p>
+  </div>
+  </article>
+
+</div>
