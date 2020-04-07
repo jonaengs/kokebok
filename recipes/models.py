@@ -4,6 +4,8 @@ from ckeditor.fields import RichTextField
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.urls import reverse
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from mptt.fields import TreeForeignKey
 from mptt.models import MPTTModel
@@ -18,6 +20,10 @@ class Recipe(models.Model):
         through='recipes.RecipeIngredient',
         related_name='recipes',
     )
+
+    # id
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    slug = models.SlugField(blank=True)
 
     # timestamps
     datetime_created = models.DateTimeField(auto_now_add=True)
@@ -35,6 +41,14 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse('recipe_detail', kwargs={'uuid': self.id, 'slug': self.slug})
+
+    def save(self, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        return super(Recipe, self).save(**kwargs)
 
     def update_recipe_ingredient(self, ingredient_id, attr, value):
         recipe_ingredient = self.recipe_ingredients.get(ingredient_id__exact=ingredient_id)

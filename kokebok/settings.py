@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'debug_toolbar',
     'ckeditor',
+    'mathfilters',
 
     # mine
     'users.apps.UsersConfig',

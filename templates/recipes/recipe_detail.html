@@ -1,10 +1,36 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Title</title>
-</head>
-<body>
+{% extends '_base.html' %}
+{% load mathfilters %}
 
-</body>
-</html>
+{% block content %}
+  <div class="content">
+    <h2 class="title is-2">{{ recipe.name }}</h2>
+    <div class="columns">
+      <div class="column is-2">
+        <div class="box">
+          <h4 class="subtitle is-4">
+            Ingredients:
+          </h4>
+          {% if recipe.default_servings %}
+            <p>Serves: <span id="servings" class="has-text-weight-bold">{{ recipe.default_servings }}</span></p>
+            <ul>
+              {% for recipe_ingredient in recipe.recipe_ingredients.all %}
+                <li>{{ recipe_ingredient.ingredient }}:
+                  {{ recipe_ingredient.amount_per_serving|mul:recipe.default_servings }} {{ recipe_ingredient.measurement }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <ul>
+              {% for ingredient in recipe.ingredient_objects.all %}
+                <li>{{ ingredient }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+
+        </div>
+      </div>
+      <div class="column is-6">
+        {{ recipe.content|safe }}
+      </div>
+    </div>
+  </div>
+{% endblock %}

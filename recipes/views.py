@@ -35,6 +35,8 @@ def search(request):
         sort_by = query.get('sort_by', 'alphabetical')  # should support: "recent", "popular", "alpha desc".
         ingredients = query.get('ingredients', '').split(",")
         if ingredients:
+            print(Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients))
+            print(ingredients)
             recipes = Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients).distinct()
             if exclusive:
                 include_ubiquitous = query.get('include-ubiquitous') == "on"
