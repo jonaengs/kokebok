@@ -121,6 +121,13 @@ class RecipeIngredient(models.Model):
             raise ValidationError("Amount per serving cannot be negative")
         return super(RecipeIngredient, self).clean()
 
+    def save(self, **kwargs):
+        if not self.pk and self.recipe.default_servings:
+            self.amount_per_serving = round(self.amount_per_serving / self.recipe.default_servings, 2)
+        else:
+            self.amount_per_serving = None
+        return super().save(**kwargs)
+
 
 # TODO: Consider moving everything category-related into its own app
 # TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category.

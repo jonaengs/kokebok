@@ -26,8 +26,11 @@ class RecipeCreateView(CreateView):
 class RecipeListView(ListView):
     model = Recipe
 
+"""
+intended to speed up things, but actually seems to make them go slower?
     def get_queryset(self):
-        return self.model.objects.prefetch_related('ingredient_objects')
+        return self.model.objects.prefetch_related('ingredient_objects', 'recipe_ingredients')
+"""
 
 
 class RecipeDetailView(DetailView):
@@ -35,33 +38,29 @@ class RecipeDetailView(DetailView):
 
 
 def scrape_view(request):
-    url = "https://www.matprat.no/oppskrifter/kos/lammestek-med-appelsinsaus/"
-    scrape = scrape_matprat(url)
-    recipe_form = RecipeForm(initial={
-        'name': scrape['name'],
-        'content': scrape['content'],
-        'default_servings': int(scrape['default_servings']),
-        'public': True
-    })
-    recipe = Recipe.objects.create(
-        name=scrape['name'],
-        default_servings=int(scrape['default_servings']),
-        public=True
-    )
-    recipe.content = scrape['content']
-    recipe.save()
-    for a, m, i in scrape["ami"]:
-        if not Ingredient.objects.filter(name=i).exists():
-            ingr = Ingredient.objects.create(name=i)
-        else:
-            ingr = Ingredient.objects.get(name=i)
-        RecipeIngredient.objects.create(
-            recipe=recipe,
-            ingredient=ingr,
-            amount_per_serving=int(a),
-            measurement=conversions[m]
+    if (url := request.GET.get('url')):
+        scrape = scrape_matprat(url)
+        recipe = Recipe.objects.create(
+            name=scrape['name'],
+            content = scrape['content'],
+            default_servings=int(scrape['default_servings']),
+            public=True
         )
-    return HttpResponse('did scraping')
+        for a, m, i in scrape["ami"]:
+            if not Ingredient.objects.filter(name=i).exists():
+                ingr = Ingredient.objects.create(name=i)
+            else:
+                ingr = Ingredient.objects.get(name=i)
+            RecipeIngredient.objects.create(
+                recipe=recipe,
+                ingredient=ingr,
+                amount_per_serving=int(a),
+                measurement=conversions[m]
+            )
+        return HttpResponse(f'recipe: {recipe} added successfully')
+    return HttpResponse('In the address bar: add ?url=<insert_your_url_here> add the end of the current url,'
+                        'without the angled brackets')
+
 
 def search(request):
     query = request.GET
