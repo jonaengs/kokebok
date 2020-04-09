@@ -1,5 +1,7 @@
 let servingsCounter = parseInt(document.getElementById("servings").innerText);
 let ingredientServings = Array.from(document.getElementsByClassName("serving-span"));
+const defaultRecipeServings = servingsCounter;
+const defaultIngredientServings = ingredientServings.map(elem => parseFloat(elem.innerText));
 
 function decrServings() {
     if (servingsCounter > 1) {
@@ -12,10 +14,12 @@ function incrServings() {
 }
 
 function addToServings(num) {
-    let prevCounter = servingsCounter;
     servingsCounter = servingsCounter + num;
-    let ratio = servingsCounter / prevCounter;
+    let ratio = servingsCounter / defaultRecipeServings;
 
     document.getElementById("servings").innerText = servingsCounter;
-    ingredientServings.forEach(elem => elem.innerText = parseInt(elem.innerText) * ratio);
+    for (let i = 0; i < ingredientServings.length; i++) {
+        ingredientServings[i].innerText = (defaultIngredientServings[i] * ratio).toFixed(1) / 1;
+    }
 }
+addToServings(0);

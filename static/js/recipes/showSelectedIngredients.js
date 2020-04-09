@@ -1,4 +1,4 @@
-let ingredient_search = document.getElementById("ingredient-search");
+let ingredient_search = document.getElementById("base_ingredient-search");
 let all_ingredients = Array.from(document.getElementById("ingredients").children);
 let _selected_ingredients = [];  // internal list, used to keep track of ingredients selected from search bar
 
@@ -37,7 +37,7 @@ function set_ingredients() {
 }
 
 function make_ingredient_searchable(event) {
-    // Run when selected ingredient is removed (X clicked). Removes the html and makes the ingredient searchable again
+    // Run when selected base_ingredient is removed (X clicked). Removes the html and makes the base_ingredient searchable again
     let ingredient_name = event.target.previousSibling.innerText;
     let ingredient_p = document.getElementById(ingredient_name + "-select-p");
     ingredient_p.remove();

@@ -17,7 +17,7 @@
     {% for recipe_ingredient in recipe.recipe_ingredients.all %}
       <li>{{ recipe_ingredient.ingredient }}:
         <span class="serving-span">
-        {{ recipe_ingredient.amount_per_serving|mul:recipe.default_servings }}
+        {{ recipe_ingredient.amount_per_serving }}
       </span>
         {{ recipe_ingredient.measurement }}</li>
     {% endfor %}
