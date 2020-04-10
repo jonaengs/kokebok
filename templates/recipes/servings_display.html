@@ -1,13 +1,13 @@
 {% load mathfilters %}
 
-{% if recipe.default_servings %}
+{% if recipe.serves %}
   <p>
     <span class="has-text-weight-bold">Serves:</span>
     <span id="minus-span is-small" class="servings-modifier tag is-small" onclick="decrServings()">
       <i class="fas fa-minus"></i>
     </span>
     <span id="servings" class="has-text-weight-bold">
-      {{ recipe.default_servings }}
+      {{ recipe.serves }}
     </span>
     <span id="plus-span is-small" class="servings-modifier tag is-small" onclick="incrServings()">
       <i class="fas fa-plus"></i>

@@ -47,11 +47,13 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'ckeditor',
     'mathfilters',
+    'django_extensions',
 
     # mine
     'users.apps.UsersConfig',
     'recipes.apps.RecipesConfig',
     'pages.apps.PagesConfig',
+    'lib'
 ]
 
 MIDDLEWARE = [

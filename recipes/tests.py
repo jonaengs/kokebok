@@ -20,7 +20,7 @@ class RecipeTest(TestCase):
         Recipe.objects.create(name=self.recipe_name)
 
     def test_add_info(self):
-        self.recipe.default_servings = 2
+        self.recipe.serves = 2
         self.recipe.public = True
         self.recipe.author = self.user
         self.recipe.save()
@@ -98,13 +98,6 @@ class RecipeIngredientTest(TestCase):
         # choices are only validated in clean methods, not on save() or other db-related methods.
         self.ri.measurement = 'test'
         self.assertRaises(ValidationError, self.ri.full_clean)
-
-    def test_update_method(self):
-        self.recipe.update_recipe_ingredient(
-            self.ingredient.id, 'amount_per_serving', 10
-        )
-        self.ri = RecipeIngredient.objects.get(pk=self.ri.pk)  # must be retrieved again to get updated attributes
-        self.assertEqual(self.ri.amount_per_serving, 10)
 
 
 class VariationTest(TestCase):

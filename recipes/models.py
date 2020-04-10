@@ -14,7 +14,7 @@ from mptt.models import MPTTModel
 class Recipe(models.Model):
     name = models.CharField(max_length=128)
     content = RichTextField(blank=True)
-    default_servings = models.PositiveIntegerField(blank=True, null=True)
+    serves = models.PositiveIntegerField(blank=True, null=True)
 
     # id
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -45,10 +45,7 @@ class Recipe(models.Model):
             self.slug = slugify(self.name)
         return super(Recipe, self).save(*args, **kwargs)
 
-    def update_recipe_ingredient(self, ingredient_id, attr, value):
-        recipe_ingredient = self.recipe_ingredients.get(ingredient_id__exact=ingredient_id)
-        recipe_ingredient.__setattr__(attr, value)
-        recipe_ingredient.save()
+
 
 
 # variation on a recipes. Allow users to "subclass" other recipes
@@ -60,12 +57,6 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
         blank=True,
         related_name='variations',
     )
-
-    def save(self, **kwargs):
-        if not self.pk:  # on creation, copy over base_ingredient connections from original recipes
-            for k, v in vars(self.original).items():
-                self.__setattr__(k, v)
-        return super().save(**kwargs)
 
 
 class Ingredient(models.Model):
@@ -80,11 +71,12 @@ class RecipeIngredient(models.Model):
     class Measurements(models.TextChoices):
         GRAMS = 'g', _('grams')
         KILOGRAMS = 'kg', _('kilograms')
-        DESILITERS = 'dl', _('deciliters')
+        DECILITERS = 'dl', _('deciliters')
         LITERS = 'L', _('liters')
         TABLESPOONS = 'tbsp', _('tablespoons')
         TEASPOONS = 'tsp', _('teaspoons')
         COUNT = '', _('count')
+        SLICES = 'slices', _('slices')
         __empty__ = _('Unknown')
 
     name = models.CharField(
@@ -108,7 +100,7 @@ class RecipeIngredient(models.Model):
         null=True,
     )
     measurement = models.CharField(
-        max_length=5,
+        max_length=16,
         choices=Measurements.choices,
         default=Measurements.COUNT,
         blank=True,

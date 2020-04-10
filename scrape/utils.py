@@ -2,14 +2,21 @@ from unicodedata import numeric
 
 from recipes.models import Recipe, Ingredient, RecipeIngredient
 
+
+M = RecipeIngredient.Measurements
 conversions = {
-    'stk': '',
-    'ts': 'tsp',
-    'dl': 'dl',
-    'ss': 'tbsp',
-    'båt': '',
-    'g': 'g',
-    'kg': 'kg',
+    'stk': M.COUNT,
+    'stykk': M.COUNT,
+    'ts': M.TEASPOONS,
+    'dl': M.DECILITERS,
+    'ss': M.TABLESPOONS,
+    'båt': M.COUNT,
+    'g': M.GRAMS,
+    'kg': M.KILOGRAMS,
+    'håndfull': M.COUNT,
+    'skiver': M.SLICES,
+
+    **dict((str(m), m) for m in M)  # add already defined conversions. (tbsp => tbsp, '' => count, etc.)
 }
 
 
@@ -29,7 +36,7 @@ def create_recipe_from_scrape(scrape):
     recipe = Recipe.objects.create(
         name=scrape['name'],
         content=scrape['content'],
-        default_servings=int(scrape['default_servings']) if scrape['default_servings'] else None,
+        serves=int(scrape['serves']) if scrape['serves'] else None,
         public=True
     )
     for a, m, i in scrape["ami"]:
@@ -55,3 +62,5 @@ def find_base_ingredient(ingredient_name):
     return None
 
 
+def is_number(s):
+    return (".".join(s.split(","))).isdigit()  # replace commas with dots before checking for digit

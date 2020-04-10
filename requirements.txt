@@ -6,4 +6,5 @@ django-ckeditor >= 5.9
 django-mathfilters >= 1.0
 beautifulsoup4
 requests
+django-extensions >= 2.2.9
 # django-cors-headers >= 3.2.1

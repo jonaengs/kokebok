@@ -5,7 +5,7 @@ from rest_framework import generics
 
 from scrape.utils import conversions, create_recipe_from_scrape
 from recipes.models import Recipe, Ingredient, RecipeIngredient
-from scrape.scrape import scrape
+from scrape.scrape import scrape, get_sites
 from recipes.serializers import RecipeSerializer
 
 
@@ -31,13 +31,12 @@ class RecipeDetailView(DetailView):
 
 
 def scrape_view(request):
-    url = request.GET.get('url')
+    url = request.GET.get('url_input')
     if url:
         site_content = scrape(url)
         recipe = create_recipe_from_scrape(site_content)
         return HttpResponseRedirect('/admin/recipes/recipe/' + str(recipe.id) + '/change')
-    return HttpResponse('In the address bar: add ?url=<insert_your_url_here> add the end of the current url,'
-                        'without the angled brackets')
+    return render(request, template_name='scrape.html', context={'supported_sites': get_sites().keys()})
 
 
 def search(request):

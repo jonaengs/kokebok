@@ -1,3 +1,5 @@
+{% load foreach %}
+
 <article class="media">
   <div class="media-content">
     <h3 class="title is-4">
@@ -5,7 +7,7 @@
     </h3>
     <p>
       <span class="has-text-weight-bold">Ingredients: </span>
-      {{ recipe.ingredient_objects.all|join:", " }}
+      {{ recipe.recipe_ingredients.all|get_attr:"name"|join:", " }}
     </p>
     <div class="content">
       <p>
