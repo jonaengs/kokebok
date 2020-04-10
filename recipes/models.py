@@ -15,11 +15,6 @@ class Recipe(models.Model):
     name = models.CharField(max_length=128)
     content = RichTextField(blank=True)
     default_servings = models.PositiveIntegerField(blank=True, null=True)
-    ingredient_objects = models.ManyToManyField(
-        to='recipes.Ingredient',
-        through='recipes.RecipeIngredient',
-        related_name='recipes',
-    )
 
     # id
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -67,7 +62,7 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
     )
 
     def save(self, **kwargs):
-        if not self.pk:  # on creation, copy over ingredient connections from original recipes
+        if not self.pk:  # on creation, copy over base_ingredient connections from original recipes
             for k, v in vars(self.original).items():
                 self.__setattr__(k, v)
         return super().save(**kwargs)
@@ -92,15 +87,21 @@ class RecipeIngredient(models.Model):
         COUNT = '', _('count')
         __empty__ = _('Unknown')
 
+    name = models.CharField(
+        blank=True,
+        max_length=128,
+    )
     recipe = models.ForeignKey(
         to='recipes.Recipe',
         on_delete=models.CASCADE,
         related_name='recipe_ingredients'
     )
-    ingredient = models.ForeignKey(
+    base_ingredient = models.ForeignKey(
         to='recipes.Ingredient',
         on_delete=models.CASCADE,
-        related_name='recipe_usages'
+        related_name='recipe_usages',
+        blank=True,
+        null=True,
     )
     amount_per_serving = models.FloatField(
         blank=True,
@@ -110,28 +111,28 @@ class RecipeIngredient(models.Model):
         max_length=5,
         choices=Measurements.choices,
         default=Measurements.COUNT,
-        blank=True
+        blank=True,
     )
 
     def __str__(self):
-        return self.recipe.name + ": " + self.ingredient.name
+        return self.recipe.name + ": " + self.name
 
     def clean(self):
-        if self.amount_per_serving < 0:
-            raise ValidationError("Amount per serving cannot be negative")
+        if not self.name and not self.base_ingredient:
+            raise ValidationError("Recipe ingredient must be given either a name or a base_ingredient")
+        if self.amount_per_serving and self.amount_per_serving < 0:
+            raise ValidationError("Amount per serving must be positive")
         return super(RecipeIngredient, self).clean()
 
     def save(self, **kwargs):
-        if not self.pk and self.recipe.default_servings:
-            self.amount_per_serving = round(self.amount_per_serving / self.recipe.default_servings, 2)
-        else:
-            self.amount_per_serving = None
-        return super().save(**kwargs)
+        if not self.pk and not self.name and self.base_ingredient:
+            self.name = self.base_ingredient.name
+        super(RecipeIngredient, self).save(**kwargs)
 
 
 # TODO: Consider moving everything category-related into its own app
 # TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category.
-#  with choices "ingredient" or "recipes" as choices. And actually, maybe reconsider if things need to split at all.
+#  with choices "base_ingredient" or "recipes" as choices. And actually, maybe reconsider if things need to split at all.
 #  Some ingredients may require recipes themselves.
 class Category(MPTTModel):
     name = models.CharField(max_length=40, unique=True)
@@ -189,11 +190,11 @@ class BaseCategoryConnection(models.Model):
 
     def clean(self, *args, **kwargs):
         if self.category.object_already_in_family(self.attr_name, self.attr.id):
-            raise ValidationError("ingredient already in category family (c)")
+            raise ValidationError("base_ingredient already in category family (c)")
 
     def save(self, *args, **kwargs):
         if self.category.object_already_in_family(self.attr_name, self.attr.id):
-            raise ValidationError("ingredient already in category family (s)")
+            raise ValidationError("base_ingredient already in category family (s)")
         super().save(*args, **kwargs)
 
     class Meta:

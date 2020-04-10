@@ -1,4 +1,4 @@
-let ingredient_search = document.getElementById("base_ingredient-search");
+let ingredient_search = document.getElementById("ingredient-search");
 let all_ingredients = Array.from(document.getElementById("ingredients").children);
 let _selected_ingredients = [];  // internal list, used to keep track of ingredients selected from search bar
 

@@ -1,12 +1,11 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.generic import CreateView, ListView, DetailView
 from rest_framework import generics
 
-from recipes.forms import RecipeForm
-from recipes.measurement_converter import conversions
+from scrape.utils import conversions, create_recipe_from_scrape
 from recipes.models import Recipe, Ingredient, RecipeIngredient
-from recipes.scrape_matprat import scrape_matprat
+from scrape.scrape import scrape
 from recipes.serializers import RecipeSerializer
 
 
@@ -26,38 +25,17 @@ class RecipeCreateView(CreateView):
 class RecipeListView(ListView):
     model = Recipe
 
-"""
-intended to speed up things, but actually seems to make them go slower?
-    def get_queryset(self):
-        return self.model.objects.prefetch_related('ingredient_objects', 'recipe_ingredients')
-"""
-
 
 class RecipeDetailView(DetailView):
     model = Recipe
 
 
 def scrape_view(request):
-    if (url := request.GET.get('url')):
-        scrape = scrape_matprat(url)
-        recipe = Recipe.objects.create(
-            name=scrape['name'],
-            content = scrape['content'],
-            default_servings=int(scrape['default_servings']),
-            public=True
-        )
-        for a, m, i in scrape["ami"]:
-            if not Ingredient.objects.filter(name=i).exists():
-                ingr = Ingredient.objects.create(name=i)
-            else:
-                ingr = Ingredient.objects.get(name=i)
-            RecipeIngredient.objects.create(
-                recipe=recipe,
-                ingredient=ingr,
-                amount_per_serving=int(a),
-                measurement=conversions[m]
-            )
-        return HttpResponse(f'recipe: {recipe} added successfully')
+    url = request.GET.get('url')
+    if url:
+        site_content = scrape(url)
+        recipe = create_recipe_from_scrape(site_content)
+        return HttpResponseRedirect('/admin/recipes/recipe/' + str(recipe.id) + '/change')
     return HttpResponse('In the address bar: add ?url=<insert_your_url_here> add the end of the current url,'
                         'without the angled brackets')
 
@@ -70,7 +48,8 @@ def search(request):
         # sort_by = query.get('sort_by', 'alphabetical')  # should support: "recent", "popular", "alpha desc".
         ingredients = query.get('ingredients', '').split(",")
         if ingredients:
-            recipes = Recipe.objects.prefetch_related('ingredient_objects').filter(ingredient_objects__name__in=ingredients).distinct()
+            recipes = Recipe.objects.prefetch_related('recipe_ingredients__base_ingredient').\
+                filter(recipe_ingredients__base_ingredient__name__in=ingredients).distinct()
             if exclusive:
                 include_ubiquitous = query.get('include-ubiquitous') == "on"
                 if include_ubiquitous:  # Will include every single recipe using a ubiq. ingr. if done for inclusive

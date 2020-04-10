@@ -29,14 +29,14 @@ class RecipeTest(TestCase):
         self.assertEqual(str(self.recipe), self.recipe.name)
 
     def test_recipe_add_ingredient(self):
-        ingredient = Ingredient.objects.create(name='ingredient')
+        ingredient = Ingredient.objects.create(name='base_ingredient')
         # pycharm will complain about this, but it works fine
         self.recipe.ingredient_objects.add(ingredient)
         self.assertIsNotNone(RecipeIngredient.objects.first())
         self.assertEquals(RecipeIngredient.objects.all().count(), 1)
 
     def test_recipe_create_ingredient(self):
-        ingredient = Ingredient.objects.create(name='ingredient')
+        ingredient = Ingredient.objects.create(name='base_ingredient')
         self.assertEqual(RecipeIngredient.objects.all().count(), 0)
         self.recipe.ingredient_objects.create()
         self.assertIsNotNone(RecipeIngredient.objects.first())
@@ -57,7 +57,7 @@ class RecipeTest(TestCase):
 
 
 class IngredientTest(TestCase):
-    ingredient_name = 'ingredient'
+    ingredient_name = 'base_ingredient'
 
     def setUp(self):
         self.ingredient = Ingredient.objects.create(name=self.ingredient_name)
@@ -76,7 +76,7 @@ class RecipeIngredientTest(TestCase):
 
     def setUp(self) -> None:
         self.recipe = Recipe.objects.create(name='recipes')
-        self.ingredient = Ingredient.objects.create(name='ingredient')
+        self.ingredient = Ingredient.objects.create(name='base_ingredient')
         self.ri = RecipeIngredient.objects.create(ingredient=self.ingredient, recipe=self.recipe)
 
     def test_create_directly(self):

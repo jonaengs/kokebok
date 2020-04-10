@@ -83,7 +83,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('amount_per_serving', models.PositiveIntegerField(blank=True, null=True)),
                 ('measurement', models.CharField(blank=True, choices=[(None, 'Unknown'), ('g', 'grams'), ('L', 'liters'), ('Tb.', 'tablespoons'), ('tsp', 'teaspoons'), ('', '')], default='', max_length=5)),
-                ('ingredient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recipe_usages', to='recipes.Ingredient')),
+                ('base_ingredient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recipe_usages', to='recipes.Ingredient')),
                 ('recipe', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='recipe_ingredients', to='recipes.Recipe')),
             ],
         ),
