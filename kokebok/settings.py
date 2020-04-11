@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'mathfilters',
     'django_extensions',
+    'nested_admin',
 
     # mine
     'users.apps.UsersConfig',

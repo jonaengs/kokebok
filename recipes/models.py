@@ -4,6 +4,7 @@ from ckeditor.fields import RichTextField
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import SET_NULL, CASCADE, DO_NOTHING
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -27,7 +28,7 @@ class Recipe(models.Model):
     # community interactions. NOT IMPLEMENTED
     author = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        on_delete=SET_NULL,
         null=True,
         blank=True,
         related_name='original_recipes',
@@ -45,12 +46,27 @@ class Recipe(models.Model):
             self.slug = slugify(self.name)
         return super(Recipe, self).save(*args, **kwargs)
 
+    class Meta:
+        ordering = ('name', )
+
+
+class SubRecipe(models.Model):
+    """Small recipes that appear in larger recipes. Examples: sauces, dressings, marinades etc."""
+    name = models.CharField(max_length=128)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # TODO: write custom on_delete function that saves the subrecipe as a new recipe or preserves it in some other way.
+    parent = models.ForeignKey(to=Recipe, on_delete=CASCADE, related_name='sub_recipes', null=True)
+
+    def get_absolute_url(self):
+        return reverse('recipe_detail', kwargs={'uuid': self.parent.id, 'slug': self.parent.slug})
+
 
 # variation on a recipes. Allow users to "subclass" other recipes
 class Variation(Recipe):  # variations are also recipes. This allows for variations on variations etc.
     original = models.ForeignKey(
         to='recipes.Recipe',
-        on_delete=models.DO_NOTHING,
+        on_delete=SET_NULL,
         null=True,
         blank=True,
         related_name='variations',
@@ -64,12 +80,16 @@ class Ingredient(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ('name', )
+
 
 class RecipeIngredient(models.Model):
     """
     Usage of ingredients in recipes. Allows for different names, measurements etc. of the same ingredient
     in recipes.
     """
+
     class Measurements(models.TextChoices):
         GRAMS = 'g', _('grams')
         KILOGRAMS = 'kg', _('kilograms')
@@ -87,12 +107,21 @@ class RecipeIngredient(models.Model):
     )
     recipe = models.ForeignKey(
         to='recipes.Recipe',
-        on_delete=models.CASCADE,
-        related_name='recipe_ingredients'
+        on_delete=CASCADE,
+        related_name='recipe_ingredients',
+        blank=True,
+        null=True,
+    )
+    sub_recipe = models.ForeignKey(
+        to='recipes.SubRecipe',
+        on_delete=CASCADE,
+        related_name='recipe_ingredients',
+        blank=True,
+        null=True,
     )
     base_ingredient = models.ForeignKey(
         to='recipes.Ingredient',
-        on_delete=models.CASCADE,
+        on_delete=CASCADE,
         related_name='recipe_usages',
         blank=True,
         null=True,
@@ -108,10 +137,28 @@ class RecipeIngredient(models.Model):
         blank=True,
     )
 
+    class Meta:
+        ordering = ('recipe__name', 'sub_recipe__name')
+
+    """
+    def __init__(self, *args, **kwargs):
+        recipe_id = next(arg for arg in args if isinstance(arg, uuid.UUID))
+        recipe = Recipe.objects.filter(id=recipe_id)
+        sub_recipe = SubRecipe.objects.filter(id=recipe_id)
+        if 
+        else:
+            raise ValidationError("RecipeIngredient must be provided with a recipe keyword argument")
+        super(RecipeIngredient, self).__init__(*args, **kwargs)
+    """
+
     def __str__(self):
         return self.recipe.name + ": " + self.name
 
     def clean(self):
+        if not self.recipe and not self.sub_recipe:
+            raise ValidationError("Recipe or sub-recipe must be given")
+        if self.recipe and self.sub_recipe:
+            raise ValidationError("Recipe ingredients can only point to one recipe. Either a sub-recipe or a recipe")
         if not self.name and not self.base_ingredient:
             raise ValidationError("Recipe ingredient must be given either a name or a base_ingredient")
         if self.amount_per_serving and self.amount_per_serving < 0:
@@ -196,9 +243,9 @@ class BaseCategoryConnection(models.Model):
 
 
 class IngredientCategoryConnection(BaseCategoryConnection):
-    ingredient = models.ForeignKey(to='recipes.Ingredient', on_delete=models.CASCADE,
+    ingredient = models.ForeignKey(to='recipes.Ingredient', on_delete=CASCADE,
                                    related_name='category_connections')
-    category = models.ForeignKey(to='recipes.IngredientCategory', on_delete=models.CASCADE, related_name='connections')
+    category = models.ForeignKey(to='recipes.IngredientCategory', on_delete=CASCADE, related_name='connections')
 
     @property
     def attr(self):
@@ -210,8 +257,8 @@ class IngredientCategoryConnection(BaseCategoryConnection):
 
 
 class RecipeCategoryConnection(BaseCategoryConnection):
-    recipe = models.ForeignKey(to='recipes.Recipe', on_delete=models.CASCADE, related_name='category_connections')
-    category = models.ForeignKey(to='recipes.RecipeCategory', on_delete=models.CASCADE, related_name='connections')
+    recipe = models.ForeignKey(to='recipes.Recipe', on_delete=CASCADE, related_name='category_connections')
+    category = models.ForeignKey(to='recipes.RecipeCategory', on_delete=CASCADE, related_name='connections')
 
     @property
     def attr(self):

@@ -21,6 +21,7 @@ from pages.views import HomeView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('_nested_admin/', include('nested_admin.urls')),
 
     path('', include('recipes.urls')),
     # path('', HomeView.as_view(), name='home'),

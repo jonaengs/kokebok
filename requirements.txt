@@ -7,4 +7,5 @@ django-mathfilters >= 1.0
 beautifulsoup4
 requests
 django-extensions >= 2.2.9
+django-nested-admin >= 3.2.4
 # django-cors-headers >= 3.2.1
