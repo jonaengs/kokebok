@@ -3,10 +3,10 @@
 {% block title %}Recipes{% endblock %}
 
 {% block content %}
-  <div class="tile is-ancestor">
+  <div class="columns is-multiline">
     {% for recipe in recipe_list %}
-      <div class="tile is-parent">
-        <div class="tile is-child box">
+      <div class="column is-4">
+        <div class="box">
           {% include 'recipes/recipe_listing.html' %}
         </div>
       </div>

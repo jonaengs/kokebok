@@ -15,7 +15,7 @@
   </p>
   <ul>
     {% for recipe_ingredient in recipe.recipe_ingredients.all %}
-      <li>{{ recipe_ingredient.ingredient }}:
+      <li>{{ recipe_ingredient.base_ingredient }}:
         <span class="serving-span">
         {{ recipe_ingredient.amount_per_serving }}
       </span>
@@ -24,8 +24,8 @@
   </ul>
 {% else %}
   <ul>
-    {% for ingredient in recipe.ingredient_objects.all %}
-      <li>{{ ingredient }}</li>
+    {% for ingredient in recipe.recipe_ingredient.all %}
+      <li>{{ ingredient.name }}</li>
     {% endfor %}
   </ul>
 {% endif %}

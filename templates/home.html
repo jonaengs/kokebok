@@ -2,26 +2,26 @@
 {% load static %}
 
 {% block content %}
-  <h1 class="title">
-    Recipe search
-  </h1>
-  <p class="subtitle">
-    Enter your ingredients into the search bar, adjust the search settings to your liking and find today's dinner.
-  </p>
   <div class="columns">
     <div class="column is-5">
+      <h2 class="title is-2">
+        Recipe search
+      </h2>
+      <p class="subtitle">
+        Enter your ingredients into the search bar, adjust the search settings to your liking and find today's dinner.
+      </p>
       {% include 'recipes/search.html' %}
     </div>
-    {% if recipes %}
-      <div class="column is-5">
-        <h3 class="title is-2">Recipes found:</h3>
+    <div class="column is-5">
+      {% if recipes %}
+        <h2 class="title is-2">Recipes found:</h2>
         {% for recipe in recipes %}
           <div class="row content">
             {% include 'recipes/recipe_listing.html' %}
           </div>
         {% endfor %}
-      </div>
-    {% endif %}
+      {% endif %}
+    </div>
   </div>
 {% endblock %}
 

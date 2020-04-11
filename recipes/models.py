@@ -16,15 +16,15 @@ class Recipe(models.Model):
     content = RichTextField(blank=True)
     serves = models.PositiveIntegerField(blank=True, null=True)
 
-    # id
+    # id TODO: Use django-extensions autoslugfield?
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     slug = models.SlugField(blank=True)
 
-    # timestamps
+    # timestamps TODO: Use django-extensions timefields?
     datetime_created = models.DateTimeField(auto_now_add=True)
     datetime_updated = models.DateTimeField(auto_now=True)
 
-    # community interactions
+    # community interactions. NOT IMPLEMENTED
     author = models.ForeignKey(
         to=settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -66,6 +66,10 @@ class Ingredient(models.Model):
 
 
 class RecipeIngredient(models.Model):
+    """
+    Usage of ingredients in recipes. Allows for different names, measurements etc. of the same ingredient
+    in recipes.
+    """
     class Measurements(models.TextChoices):
         GRAMS = 'g', _('grams')
         KILOGRAMS = 'kg', _('kilograms')

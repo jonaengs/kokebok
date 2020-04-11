@@ -1,11 +1,11 @@
 let ubiquitousCheckboxContainer = document.getElementById("ubiq-checkbox-container");
+let bestMatchOption = document.getElementById("best-match-option");
 
-function toggleUbiq(event) {
+function radioToggle(event) {
     if (event.target.value === 'True') {
         ubiquitousCheckboxContainer.style.display = 'block';
-    } else if (event.target.value === 'False') {
-        ubiquitousCheckboxContainer.style.display = 'none';
+        bestMatchOption.remove()
     } else {
-        console.log("error when toggling ubiq checkbox")
+        ubiquitousCheckboxContainer.style.display = 'none';
     }
 }
