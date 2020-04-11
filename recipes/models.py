@@ -46,8 +46,6 @@ class Recipe(models.Model):
         return super(Recipe, self).save(*args, **kwargs)
 
 
-
-
 # variation on a recipes. Allow users to "subclass" other recipes
 class Variation(Recipe):  # variations are also recipes. This allows for variations on variations etc.
     original = models.ForeignKey(
