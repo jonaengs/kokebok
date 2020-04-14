@@ -32,7 +32,7 @@ def scrape(url):
         'content': content string. Often html in string format
         'serves': default servings. May be None
         'ami': list of tuples (amount, measurement, ingredient) for the creation of recipe ingredients
-        'sub-recipes': dictionary of sub-recipes in the recipe. Form: {sub-recipe title : sub-recipe ami}
+        'sub_recipes': dictionary of sub-recipes in the recipe. Form: {sub-recipe title : sub-recipe ami}
     """
     page = requests.get(url)
     soup = BeautifulSoup(page.content, 'html.parser')
@@ -101,11 +101,12 @@ def scrape_nrk(soup):
             ami.append((amount, measure, ingredient))
         return ami
 
-    def build_instructions(instructions_container):
-        instructions = instructions_container.find('div', {'itemprop': 'description'}).text  # introduction
-        instructions += "\n<h3>SLIK GJØR DU:</h3>\n"
-        instructions += '<ol>' + "".join(['<li>' + p.text + '</li>' for p in instructions_div.find_all('p')]) + '</ol>'
-        tips = instructions_container.find('ul')
+    def build_instructions():
+        instructions_div = soup.find('div', {'class': 'article-content'})
+        instructions = soup.find('div', {'itemprop': 'description'}).text  # introduction
+        instructions += "<hr>"
+        instructions += "".join([str(elem) for elem in instructions_div.find_all(['p', 'h2'])])
+        tips = instructions_div.find('ul')
         if tips:  # tips are not always present
             instructions += "<h4>TIPS:</h4>" + str(tips)
         return instructions
@@ -113,8 +114,7 @@ def scrape_nrk(soup):
     title = soup.find('h1', {'itemprop': 'name headline'}).text
     serves = soup.find('li', {'class': 'recipe-icon recipe-icon-portions'}).text.split(" ")[0]
 
-    instructions_div = soup.find('div', {'class': 'article-content'})
-    instructions = build_instructions(instructions_div)
+    instructions = build_instructions()
 
     # remove meta-data uls that clutter the ingredient uls. Removes them from the soup altogether, so DO LAST.
     all(ul.extract() for ul in soup.find_all('ul', {'class': 'recipe-list recipe-list-meta'}))
@@ -134,5 +134,5 @@ def scrape_nrk(soup):
         'content': instructions,
         'serves': serves,
         'ami': ami,
-        'sub-recipes': sub_recipes
+        'sub_recipes': sub_recipes
     }

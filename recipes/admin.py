@@ -1,8 +1,14 @@
 from django.contrib import admin
+from django.urls import resolve
 from nested_admin.nested import NestedTabularInline, NestedModelAdmin
 
 from recipes.models import Ingredient, Recipe, RecipeCategoryConnection, IngredientCategoryConnection, \
     RecipeIngredient, IngredientCategory, RecipeCategory, Variation, SubRecipe
+
+
+def get_parent_id_from_request(request):
+    resolved = resolve(request.path_info)
+    return resolved.kwargs.get('object_id')
 
 
 class RecipeCategoryInline(NestedTabularInline):
@@ -18,7 +24,12 @@ class IngredientCategoryInline(admin.TabularInline):
 class RecipeIngredientInline(NestedTabularInline):
     model = RecipeIngredient
     extra = 1
-    exclude = ('sub_recipe',)
+
+    def get_exclude(self, request, obj=None):
+        if self.parent_model == SubRecipe:
+            return ('recipe',)
+        elif self.parent_model == Recipe:
+            return ('sub_recipe',)
 
 
 class SubRecipeInline(NestedTabularInline):
@@ -27,6 +38,11 @@ class SubRecipeInline(NestedTabularInline):
     ]
     model = SubRecipe
     extra = 0
+
+    def get_queryset(self, request):
+        recipe = Recipe.objects.get(pk=get_parent_id_from_request(request))
+        # return recipe.sub_recipes.all().prefetch_related('recipe_ingredients', )
+        return super(SubRecipeInline, self).get_queryset(request)
 
 
 class IngredientAdmin(admin.ModelAdmin):
@@ -42,6 +58,7 @@ class RecipeAdmin(NestedModelAdmin):
         SubRecipeInline,
     ]
 
+    # hidden on creation, read only when editing
     special_fields = ('author', 'datetime_created', 'datetime_updated')
 
     def get_form(self, request, obj=None, change=False, **kwargs):

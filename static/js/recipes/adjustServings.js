@@ -19,7 +19,9 @@ function addToServings(num) {
 
     document.getElementById("servings").innerText = servingsCounter;
     for (let i = 0; i < ingredientServings.length; i++) {
-        ingredientServings[i].innerText = (defaultIngredientServings[i] * ratio).toFixed(1) / 1;
+        amount = (defaultIngredientServings[i] * ratio).toFixed(1) / 1;
+        console.log(amount + ": " + isNaN(amount));
+        ingredientServings[i].innerText = isNaN(amount) ? "": amount;
     }
 }
 addToServings(0);

@@ -53,13 +53,14 @@ class Recipe(models.Model):
 class SubRecipe(models.Model):
     """Small recipes that appear in larger recipes. Examples: sauces, dressings, marinades etc."""
     name = models.CharField(max_length=128)
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     # TODO: write custom on_delete function that saves the subrecipe as a new recipe or preserves it in some other way.
     parent = models.ForeignKey(to=Recipe, on_delete=CASCADE, related_name='sub_recipes', null=True)
 
     def get_absolute_url(self):
         return reverse('recipe_detail', kwargs={'uuid': self.parent.id, 'slug': self.parent.slug})
+
+    def __str__(self):
+        return self.parent.name + "/SUB/" + self.name
 
 
 # variation on a recipes. Allow users to "subclass" other recipes
@@ -76,6 +77,12 @@ class Variation(Recipe):  # variations are also recipes. This allows for variati
 class Ingredient(models.Model):
     name = models.CharField(max_length=64, unique=True)  # unique??
     ubiquitous = models.BooleanField(default=False)
+    # TODO: Add generalization field. White pepper generalizes to pepper, cheddar to cheese, dried oregano to oregano
+    #  orange peel to orange, lammekjøtt to lammelår or vice versa, karbonadedeig to kjøttdeig, rødvin to vin, etc.
+    #  Maybe order ingredients into trees?
+    #  Alternative is to add # a substitutes table, and then allowing users to check an "allow substitutes"
+    #  box when searching.
+    #  Or maybe do both.
 
     def __str__(self):
         return self.name
@@ -152,7 +159,10 @@ class RecipeIngredient(models.Model):
     """
 
     def __str__(self):
+        if self.sub_recipe:
+            return self.sub_recipe.parent.name + "/" + self.sub_recipe.name + ": " + self.name
         return self.recipe.name + ": " + self.name
+
 
     def clean(self):
         if not self.recipe and not self.sub_recipe:

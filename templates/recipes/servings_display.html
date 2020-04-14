@@ -14,12 +14,15 @@
     </span>
   </p>
   <ul>
-    {% for recipe_ingredient in recipe.recipe_ingredients.all %}
-      <li>{{ recipe_ingredient.base_ingredient }}:
-        <span class="serving-span">
-        {{ recipe_ingredient.amount_per_serving }}
-      </span>
-        {{ recipe_ingredient.measurement }}</li>
+    {% with recipe as recipe_item %}
+      {% include 'recipes/recipe_ingredient_li.html' %}
+    {% endwith %}
+    {% for sub_recipe in recipe.sub_recipes.all %}
+      <br>
+      <h4 class="is-title is-4">{{ sub_recipe.name }}</h4>
+      {% with sub_recipe as recipe_item %}
+        {% include 'recipes/recipe_ingredient_li.html' %}
+      {% endwith %}
     {% endfor %}
   </ul>
 {% else %}

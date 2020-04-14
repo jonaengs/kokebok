@@ -7,7 +7,7 @@
     </h3>
     <p>
       <span class="has-text-weight-bold">Ingredients: </span>
-      {{ recipe.recipe_ingredients.all|get_attr:"name"|join:", " }}
+      {{ recipe.recipe_ingredients.all|get_attr:"base_ingredient"|sremove:"None"|join:", " }}
     </p>
     <hr>
     <div class="content">
