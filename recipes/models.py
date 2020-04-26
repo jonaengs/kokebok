@@ -17,11 +17,9 @@ class Recipe(models.Model):
     content = RichTextField(blank=True)
     serves = models.PositiveIntegerField(blank=True, null=True)
 
-    # id TODO: Use django-extensions autoslugfield?
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     slug = models.SlugField(blank=True)
 
-    # timestamps TODO: Use django-extensions timefields?
     datetime_created = models.DateTimeField(auto_now_add=True)
     datetime_updated = models.DateTimeField(auto_now=True)
 
@@ -47,11 +45,12 @@ class Recipe(models.Model):
         return super(Recipe, self).save(*args, **kwargs)
 
     class Meta:
-        ordering = ('name', )
+        ordering = ('name',)
 
 
 class SubRecipe(models.Model):
     """Small recipes that appear in larger recipes. Examples: sauces, dressings, marinades etc."""
+    # TODO: Reconsider implementation. Subrecipes should be searchable, but this implementation makes this hard.
     name = models.CharField(max_length=128)
     # TODO: write custom on_delete function that saves the subrecipe as a new recipe or preserves it in some other way.
     parent = models.ForeignKey(to=Recipe, on_delete=CASCADE, related_name='sub_recipes', null=True)
@@ -88,7 +87,7 @@ class Ingredient(models.Model):
         return self.name
 
     class Meta:
-        ordering = ('name', )
+        ordering = ('name',)
 
 
 class RecipeIngredient(models.Model):
@@ -147,22 +146,10 @@ class RecipeIngredient(models.Model):
     class Meta:
         ordering = ('recipe__name', 'sub_recipe__name')
 
-    """
-    def __init__(self, *args, **kwargs):
-        recipe_id = next(arg for arg in args if isinstance(arg, uuid.UUID))
-        recipe = Recipe.objects.filter(id=recipe_id)
-        sub_recipe = SubRecipe.objects.filter(id=recipe_id)
-        if 
-        else:
-            raise ValidationError("RecipeIngredient must be provided with a recipe keyword argument")
-        super(RecipeIngredient, self).__init__(*args, **kwargs)
-    """
-
     def __str__(self):
         if self.sub_recipe:
             return self.sub_recipe.parent.name + "/" + self.sub_recipe.name + ": " + self.name
         return self.recipe.name + ": " + self.name
-
 
     def clean(self):
         if not self.recipe and not self.sub_recipe:
@@ -181,10 +168,24 @@ class RecipeIngredient(models.Model):
         super(RecipeIngredient, self).save(**kwargs)
 
 
+"""
+Ingredients and Recipes can be placed into one or more category each. Categories are stored in trees, each category
+pointing to its parent. This allows for a hierarchy: herbs & spices -> herbs -> fresh herbs -> basil. Into the basil
+cateogory we could for example place thai basil and common basil.
+
+There are separate category types for ingredients and recipes, so a recipe and an ingredient cannot be placed into the 
+same category, or category Tree.
+
+Categories and recipes/ingredients are connected by CategoryConnections. As there are separate category models
+for the recipes and ingredients there are also separate connections for these. Both connections superclass a base
+connection class which contains all the shared logic. Since their field names differ ("recipe" vs "ingredient", etc.),
+some additional fields have been added to allow for this extraction of logic. Same goes for Category and its subclasses.
+"""
+
 # TODO: Consider moving everything category-related into its own app
 # TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category.
-#  with choices "base_ingredient" or "recipes" as choices. And actually, maybe reconsider if things need to split at all.
-#  Some ingredients may require recipes themselves.
+#  with choices "base_ingredient" or "recipes" as choices. And maybe reconsider if things need to split at all.
+#  Is it possible that some ingredients may require recipes themselves?
 class Category(MPTTModel):
     name = models.CharField(max_length=40, unique=True)
     parent = TreeForeignKey('self', blank=True, null=True, related_name='children', on_delete=models.SET_NULL)
