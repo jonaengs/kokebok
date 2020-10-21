@@ -14,6 +14,7 @@ def get_sites():
         'nrk': scrape_nrk,
     }
 
+
 def get_scrape_func(url):
     sites = get_sites()
     netloc = urlparse(url).netloc.split(".")  # https://wwww.google.com/?q=aisdhaA_Sd => ['www', 'google', 'com']
@@ -32,12 +33,11 @@ def scrape(url):
         'content': content string. Often html in string format
         'serves': default servings. May be None
         'ami': list of tuples (amount, measurement, ingredient) for the creation of recipe ingredients
-        'sub_recipes': dictionary of sub-recipes in the recipe. Form: {sub-recipe title : sub-recipe ami}
+        'origin': the given url
     """
     page = requests.get(url)
-    soup = BeautifulSoup(page.content, 'html.parser')
-    scrape_dict = get_scrape_func(url)(soup)
-    scrape_dict['content'] += f'\n\n <a href="{url}">ORIGINAL HER</a>'
+    soup = BeautifulSoup(page.text.lower(), 'html.parser')
+    scrape_dict = get_scrape_func(url)(soup) | {'origin_url': url}
     return scrape_dict
 
 
@@ -63,8 +63,7 @@ def scrape_matprat(soup):
     }
 
 
-def scrape_meny(soup):
-    # Does not find ingredient amounts or measurements :(
+def scrape_meny(soup):  # Does not find ingredient amounts or measurements :(
     # Meny laster inn / renderer oppskriftdata etter siden har lastet. Noe data sendes som json
     page_json_content = soup.find('script', {'type': 'application/ld+json'})
     json_data = json.loads(page_json_content.text)
@@ -85,9 +84,9 @@ def scrape_meny(soup):
 
 def scrape_nrk(soup):
     def ingredients_list_to_ami(ingredients):
+        # example ingredient strings: "200 g spagetti", "4 cherrytomater", "nykvernet pepper", "2 ss smør til steking"
         ami = []
         for ingredient in ingredients:
-            # example ingredient strings: "200 g spagetti", "4 cherrytomater", "nykvernet pepper", "2 ss smør til steking"
             parts = ingredient.split(" ")
             amount, measure, ingredient = None, None, None
             if is_number(parts[0]):  # Amount specified
@@ -107,7 +106,7 @@ def scrape_nrk(soup):
         instructions += "<hr>"
         instructions += "".join([str(elem) for elem in instructions_div.find_all(['p', 'h2'])])
         tips = instructions_div.find('ul')
-        if tips:  # tips are not always present
+        if tips:
             instructions += "<h4>TIPS:</h4>" + str(tips)
         return instructions
 
@@ -116,23 +115,18 @@ def scrape_nrk(soup):
 
     instructions = build_instructions()
 
-    # remove meta-data uls that clutter the ingredient uls. Removes them from the soup altogether, so DO LAST.
+    # remove meta-data uls that clutter the ingredient uls.
     all(ul.extract() for ul in soup.find_all('ul', {'class': 'recipe-list recipe-list-meta'}))
 
     ingredient_uls = list(soup.find_all('ul', {'class': 'recipe-list'}))
-    ami, sub_recipes = [], {}
-    for ul in ingredient_uls:
-        ul_title = ul.previous_sibling.previous_sibling
+    ami = []
+    for ul in ingredient_uls:  # a recipe may contain multiple ingredient lists
         ul_ingredients = [li.text.strip() for li in ul.find_all('li')]
-        if ul_title.name == 'h4':  # sub-recipe
-            sub_recipes[ul_title.text] = ingredients_list_to_ami(ul_ingredients)
-        else:
-            ami += ingredients_list_to_ami(ul_ingredients)
+        ami += ingredients_list_to_ami(ul_ingredients)
 
     return {
         'name': title,
         'content': instructions,
         'serves': serves,
         'ami': ami,
-        'sub_recipes': sub_recipes
     }

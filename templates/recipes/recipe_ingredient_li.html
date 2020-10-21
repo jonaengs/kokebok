@@ -1,8 +1,0 @@
-{% for recipe_ingredient in recipe_item.recipe_ingredients.all %}
-  <li>
-    <span class="serving-span">
-      {{ recipe_ingredient.amount_per_serving }}
-    </span>
-    {{ recipe_ingredient.measurement }} {{ recipe_ingredient.name }}
-  </li>
-{% endfor %}

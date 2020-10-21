@@ -1,11 +1,5 @@
 django >= 3
 django-mptt >= 0.11
-django-rest-framework >= 3.11
-django-debug-toolbar
 django-ckeditor >= 5.9
-django-mathfilters >= 1.0
 beautifulsoup4
 requests
-django-extensions >= 2.2.9
-django-nested-admin >= 3.2.4
-# django-cors-headers >= 3.2.1

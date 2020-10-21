@@ -1,20 +1,22 @@
 import uuid
 
 from ckeditor.fields import RichTextField
-from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import SET_NULL, CASCADE, DO_NOTHING
+from django.db.models import SET_NULL, CASCADE
 from django.urls import reverse
-from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from mptt.fields import TreeForeignKey
 from mptt.models import MPTTModel
+
+from lib.rw_ingredients import slugify_norwegian
 
 
 class Recipe(models.Model):
     name = models.CharField(max_length=128)
     content = RichTextField(blank=True)
+    origin_url = models.URLField(max_length=300, blank=True, null=True)
     serves = models.PositiveIntegerField(blank=True, null=True)
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -22,16 +24,6 @@ class Recipe(models.Model):
 
     datetime_created = models.DateTimeField(auto_now_add=True)
     datetime_updated = models.DateTimeField(auto_now=True)
-
-    # community interactions. NOT IMPLEMENTED
-    author = models.ForeignKey(
-        to=settings.AUTH_USER_MODEL,
-        on_delete=SET_NULL,
-        null=True,
-        blank=True,
-        related_name='original_recipes',
-    )
-    public = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -41,47 +33,32 @@ class Recipe(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
-        return super(Recipe, self).save(*args, **kwargs)
+            self.slug = slugify_norwegian(self.name)
+        return super().save(*args, **kwargs)
 
     class Meta:
         ordering = ('name',)
 
 
-class SubRecipe(models.Model):
-    """Small recipes that appear in larger recipes. Examples: sauces, dressings, marinades etc."""
-    # TODO: Reconsider implementation. Subrecipes should be searchable, but this implementation makes this hard.
-    name = models.CharField(max_length=128)
-    # TODO: write custom on_delete function that saves the subrecipe as a new recipe or preserves it in some other way.
-    parent = models.ForeignKey(to=Recipe, on_delete=CASCADE, related_name='sub_recipes', null=True)
-
-    def get_absolute_url(self):
-        return reverse('recipe_detail', kwargs={'uuid': self.parent.id, 'slug': self.parent.slug})
-
-    def __str__(self):
-        return self.parent.name + "/SUB/" + self.name
-
-
-# variation on a recipes. Allow users to "subclass" other recipes
-class Variation(Recipe):  # variations are also recipes. This allows for variations on variations etc.
-    original = models.ForeignKey(
-        to='recipes.Recipe',
-        on_delete=SET_NULL,
-        null=True,
+class Ingredient(MPTTModel):
+    name = models.CharField(max_length=64, unique=True)
+    ubiquitous = models.BooleanField(default=False)
+    # Add substitutes later? substitutes = models.ManyToManyField(to="self", related_name="substitutes", blank=True)
+    parent = TreeForeignKey(
+        'self',
         blank=True,
-        related_name='variations',
+        null=True,
+        related_name='children',
+        on_delete=SET_NULL
     )
 
-
-class Ingredient(models.Model):
-    name = models.CharField(max_length=64, unique=True)  # unique??
-    ubiquitous = models.BooleanField(default=False)
-    # TODO: Add generalization field. White pepper generalizes to pepper, cheddar to cheese, dried oregano to oregano
-    #  orange peel to orange, lammekjøtt to lammelår or vice versa, karbonadedeig to kjøttdeig, rødvin to vin, etc.
-    #  Maybe order ingredients into trees?
-    #  Alternative is to add # a substitutes table, and then allowing users to check an "allow substitutes"
-    #  box when searching.
-    #  Or maybe do both.
+    def object_already_in_family(self, field, object_id):
+        family = self.get_ancestors() | self.get_children()
+        filter_dict = {'id': object_id}
+        for ingredient in family:
+            if ingredient.__getattribute__(field).filter(**filter_dict).exists():
+                return True
+        return False
 
     def __str__(self):
         return self.name
@@ -100,6 +77,8 @@ class RecipeIngredient(models.Model):
         GRAMS = 'g', _('grams')
         KILOGRAMS = 'kg', _('kilograms')
         DECILITERS = 'dl', _('deciliters')
+        CENTILITERS = 'cl', _('centiliters')
+        MILLILITERS = 'ml', _('milliliters')
         LITERS = 'L', _('liters')
         TABLESPOONS = 'tbsp', _('tablespoons')
         TEASPOONS = 'tsp', _('teaspoons')
@@ -118,13 +97,6 @@ class RecipeIngredient(models.Model):
         blank=True,
         null=True,
     )
-    sub_recipe = models.ForeignKey(
-        to='recipes.SubRecipe',
-        on_delete=CASCADE,
-        related_name='recipe_ingredients',
-        blank=True,
-        null=True,
-    )
     base_ingredient = models.ForeignKey(
         to='recipes.Ingredient',
         on_delete=CASCADE,
@@ -135,6 +107,7 @@ class RecipeIngredient(models.Model):
     amount_per_serving = models.FloatField(
         blank=True,
         null=True,
+        validators=[MinValueValidator(0.0)]
     )
     measurement = models.CharField(
         max_length=16,
@@ -144,137 +117,21 @@ class RecipeIngredient(models.Model):
     )
 
     class Meta:
-        ordering = ('recipe__name', 'sub_recipe__name')
+        ordering = ('recipe__name', )
 
     def __str__(self):
-        if self.sub_recipe:
-            return self.sub_recipe.parent.name + "/" + self.sub_recipe.name + ": " + self.name
-        return self.recipe.name + ": " + self.name
+        return f"{self.name} [{self.recipe.name}]"
 
     def clean(self):
-        if not self.recipe and not self.sub_recipe:
-            raise ValidationError("Recipe or sub-recipe must be given")
-        if self.recipe and self.sub_recipe:
-            raise ValidationError("Recipe ingredients can only point to one recipe. Either a sub-recipe or a recipe")
+        if not self.recipe:
+            raise ValidationError("Recipe must be given")
         if not self.name and not self.base_ingredient:
             raise ValidationError("Recipe ingredient must be given either a name or a base_ingredient")
-        if self.amount_per_serving and self.amount_per_serving < 0:
-            raise ValidationError("Amount per serving must be positive")
-        return super(RecipeIngredient, self).clean()
+        return super().clean()
 
     def save(self, **kwargs):
-        if not self.pk and not self.name and self.base_ingredient:
-            self.name = self.base_ingredient.name
-        super(RecipeIngredient, self).save(**kwargs)
-
-
-"""
-Ingredients and Recipes can be placed into one or more category each. Categories are stored in trees, each category
-pointing to its parent. This allows for a hierarchy: herbs & spices -> herbs -> fresh herbs -> basil. Into the basil
-cateogory we could for example place thai basil and common basil.
-
-There are separate category types for ingredients and recipes, so a recipe and an ingredient cannot be placed into the 
-same category, or category Tree.
-
-Categories and recipes/ingredients are connected by CategoryConnections. As there are separate category models
-for the recipes and ingredients there are also separate connections for these. Both connections superclass a base
-connection class which contains all the shared logic. Since their field names differ ("recipe" vs "ingredient", etc.),
-some additional fields have been added to allow for this extraction of logic. Same goes for Category and its subclasses.
-"""
-
-# TODO: Consider moving everything category-related into its own app
-# TODO: The whole implementation is pretty ugly. Consider refactoring. Maybe just add a "type" field to category.
-#  with choices "base_ingredient" or "recipes" as choices. And maybe reconsider if things need to split at all.
-#  Is it possible that some ingredients may require recipes themselves?
-class Category(MPTTModel):
-    name = models.CharField(max_length=40, unique=True)
-    parent = TreeForeignKey('self', blank=True, null=True, related_name='children', on_delete=models.SET_NULL)
-
-    def object_already_in_family(self, field, object_id):
-        family = self.get_ancestors() | self.get_children()
-        filter_dict = {'id': object_id}
-        for category in family:
-            if category.__getattribute__(field).filter(**filter_dict).exists():
-                return True
-        return False
-
-    class Meta:
-        abstract = True
-
-    def __str__(self):
-        return self.name
-
-
-class IngredientCategory(Category):
-    ingredients = models.ManyToManyField(
-        to='recipes.Ingredient',
-        related_name='categories',
-        through='recipes.IngredientCategoryConnection',
-    )
-
-    class Meta:
-        verbose_name_plural = "Ingredient categories"
-
-
-class RecipeCategory(Category):
-    recipes = models.ManyToManyField(
-        to='recipes.Recipe',
-        related_name='categories',
-        through='recipes.RecipeCategoryConnection'
-    )
-
-    class Meta:
-        verbose_name_plural = "Recipe categories"
-
-
-class BaseCategoryConnection(models.Model):
-    @property
-    def category(self):
-        raise NotImplementedError()
-
-    @property
-    def attr(self):
-        raise NotImplementedError("implementing classes must specify which attr to prevent overlap with")
-
-    @property
-    def attr_name(self):  # name of Recipe/IngredientCategory m2m field
-        raise NotImplementedError()
-
-    def clean(self, *args, **kwargs):
-        if self.category.object_already_in_family(self.attr_name, self.attr.id):
-            raise ValidationError("base_ingredient already in category family (c)")
-
-    def save(self, *args, **kwargs):
-        if self.category.object_already_in_family(self.attr_name, self.attr.id):
-            raise ValidationError("base_ingredient already in category family (s)")
-        super().save(*args, **kwargs)
-
-    class Meta:
-        abstract = True
-
-
-class IngredientCategoryConnection(BaseCategoryConnection):
-    ingredient = models.ForeignKey(to='recipes.Ingredient', on_delete=CASCADE,
-                                   related_name='category_connections')
-    category = models.ForeignKey(to='recipes.IngredientCategory', on_delete=CASCADE, related_name='connections')
-
-    @property
-    def attr(self):
-        return self.ingredient
-
-    @property
-    def attr_name(self):
-        return "ingredients"
-
-
-class RecipeCategoryConnection(BaseCategoryConnection):
-    recipe = models.ForeignKey(to='recipes.Recipe', on_delete=CASCADE, related_name='category_connections')
-    category = models.ForeignKey(to='recipes.RecipeCategory', on_delete=CASCADE, related_name='connections')
-
-    @property
-    def attr(self):
-        return self.recipe
-
-    @property
-    def attr_name(self):
-        return "recipes"
+        self.full_clean()
+        if not self.pk:  # = if being created, not updated
+            if not self.name and self.base_ingredient:
+                self.name = self.base_ingredient.name
+        super().save(**kwargs)

@@ -1,13 +1,12 @@
 {% extends '_base.html' %}
 
 {% block content %}
-
-  <form action="" method="GET" class="form">
+  <form action="" method="POST" class="form">
+    {% csrf_token %}
     <div class="field">
-      <label for="url_input"><span class="has-text-weight-bold">Supported sites:</span> {{ supported_sites|join:", " }}</label>
-      <input name="url_input" id="url_input" type="url" placeholder="Input url to be scraped" class="input" autofocus>
+      <label for="scrape_url"><span class="has-text-weight-bold">Supported sites:</span> {{ supported_sites|join:", " }}</label>
+      <input name="scrape_url" id="scrape_url" type="url" placeholder="Input url to be scraped" class="input" autofocus>
     </div>
     <button type="submit" class="button is-primary">SCRAPE</button>
   </form>
-
 {% endblock %}

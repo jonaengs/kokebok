@@ -1,3 +1,7 @@
 span.servings-modifier {
     cursor: pointer;
 }
+
+.ingredients-container {
+    border-right: 1px solid grey;
+}
